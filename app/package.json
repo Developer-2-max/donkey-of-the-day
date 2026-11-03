@@ -1,0 +1,22 @@
+{
+  "name": "donkey-of-the-day",
+  "version": "2.1.0",
+  "description": "Donkey of the Day — online multiplayer card game for friends (self-hosted)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "loadtest": "node scripts/loadtest.js",
+    "icons": "node scripts/make-icons.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "4.22.3",
+    "socket.io": "4.8.4"
+  },
+  "devDependencies": {
+    "socket.io-client": "4.8.4"
+  }
+}

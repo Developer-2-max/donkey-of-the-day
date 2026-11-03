@@ -1,0 +1,29 @@
+# Start everything with:  docker compose up -d --build
+# The game listens on 127.0.0.1:3000 only; nginx (with HTTPS) is the public front door.
+services:
+  donkey:
+    build: ./app
+    container_name: donkey
+    init: true                       # clean signal handling, so rooms are saved on restart
+    restart: unless-stopped
+    stop_grace_period: 15s
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      PORT: 3000
+      DATA_DIR: /data                # rooms, profiles, Hall of Shame, reports, uploads and the audio folder
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}      # set in .env to switch on Sign in with Google
+      PUBLIC_ROOMS: ${PUBLIC_ROOMS:-1}             # 0 = invite-only
+      MAX_ROOMS: ${MAX_ROOMS:-500}
+      IDLE_CLOSE_MIN: ${IDLE_CLOSE_MIN:-30}
+      ROOM_TTL_HOURS: ${ROOM_TTL_HOURS:-72}
+      GAME_TZ_OFFSET_MIN: ${GAME_TZ_OFFSET_MIN:-330}
+      BANNED_WORDS: ${BANNED_WORDS:-}
+    volumes:
+      - donkey-data:/data
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+volumes:
+  donkey-data:

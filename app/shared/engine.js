@@ -1,11 +1,11 @@
-/* Donkey of the Day — authoritative rules engine (rule version 0.1 defaults) */
+﻿/* Donkey of the Day — authoritative rules engine (rule version 0.1 defaults) */
 (function (root) {
   const SUITS = ['C', 'D', 'H', 'S'];
   const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
   const RV = {}; RANKS.forEach((r, i) => RV[r] = i + 2);
   const SUIT_NAME = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
   const T = { seatDraw: 4500, seatOrder: 45000, dealerDraw: 4500, batch: 15000, dealTotal: 120000,
-              turn: 90000, handEnd: 5000, trickEnd: 3000, reveal: 20000, ready: 120000, pause: 120000 };
+              turn: 90000, handEnd: 5000, trickEnd: 3000, reveal: 20000, ready: 120000, pause: 120000, shuffle: 45000, deckCut: 30000 };
   const suitOf = c => c[0];
   const rankOf = c => RV[c.slice(2)];
   const fullDeck = () => { const d = []; for (const s of SUITS) for (const r of RANKS) d.push(s + '_' + r); return d; };
@@ -48,9 +48,11 @@
       phase: 'SEATING_DRAW', deadline: now + T.seatDraw, log: [], history: [], autoCount: {}, handNo: 0,
       startedAt: now, award: null, lastResult: null, pauseFor: null, ready: {} };
     st.targets = Array.isArray(o.targets) ? o.targets.filter(u => o.players.some(p => p.uid === u)) : []; st.hintsOn = !!o.hints && st.targets.length > 0;
+    st.turnMs = Number.isFinite(o.turnMs) && o.turnMs >= 5000 && o.turnMs <= T.turn ? o.turnMs : T.turn;
     st.levels = {}; st.titleOf = {}; st.target = [2, 3, 5].includes(o.target) ? o.target : 5;
     st.titles = Array.isArray(o.titles) && o.titles.length === 5 && o.titles.every(Array.isArray) ? o.titles.map(l => l.map(t => String(t || '').trim().slice(0, 40)).filter(Boolean)) : null;
     st.style = {};
+    { const f = o.fun || {}; st.opts = { shuffle: !!f.shuffle, powers: !!f.powers, blitz: !!f.blitz, bets: !!f.bets }; st.turnMs = st.opts.blitz ? 10000 : T.turn; ensure25(st); }
     o.players.forEach(p => { st.names[p.uid] = p.name; st.bots[p.uid] = !!p.bot; st.losses[p.uid] = 0; if (p.bot) st.levels[p.uid] = p.level || 'medium'; });
     const d = draw(st.lobby, rand, true);
     st.draw = { kind: 'seat', rounds: d.rounds, winner: d.winner };
@@ -66,12 +68,17 @@
     const q = Array(n).fill(base);
     if (st.mode === 'single') q[st.anchor] += rem; else for (let i = 0; i < rem; i++) q[(st.anchor + i) % n]++;
     st.quotas = q; st.dealt = Array(n).fill(0);
-    st.deck = shuffle(fullDeck(), rand);
+    const prevPile = st.hands ? [...(st.discard || []), ...(st.table || []).map(t => t.c), ...Object.values(st.hands).flat()] : [];
+    const pile = prevPile.length === 52 && new Set(prevPile).size === 52 ? prevPile : fullDeck();
+    ensure25(st); const shufOn = st.opts.shuffle;
+    st.deck = shufOn ? pile : shuffle(fullDeck(), rand);
     st.hands = {}; st.seats.forEach(u => st.hands[u] = []);
     st.table = []; st.discard = []; st.transfer = null; st.led = null; st.trick = null;
     st.finished = {}; st.ready = {}; st.pauseFor = null; st.seen = {}; st.voids = {}; st.known = {}; st.ledBy = {}; st.cutWith = {}; st.shedSeen = {}; st.playedBy = {}; st.highBy = {}; st.trickNo = 0; st.finalView = null;
     st.dealTo = (st.dealer + 1) % n;
     st.phase = 'DEALING'; st.deadline = now + T.batch; st.dealTotal = now + T.dealTotal;
+    st.bets = {}; st.firstOut = null; st.reverseNext = false; st.shuf = null;
+    if (shufOn) { st.shuf = { by: st.seats[st.dealer], cutter: st.seats[(st.dealer + 1) % n], fresh: pile[0] === 'C_2' && pile[51] === 'S_A' }; st.phase = 'SHUFFLE'; st.deadline = now + T.shuffle; st.dealTotal = null; }
     log(st, nm(st, st.seats[st.dealer]) + ' is dealing hand ' + st.handNo + '.');
   }
 
@@ -88,6 +95,7 @@
   }
   function finishDeal(st, now) {
     st.seats.forEach(u => st.hands[u].sort(cardSort));
+    if (st.shuf) st.shuf.shape = st.seats.map(u => { const c = {}; st.hands[u].forEach(x => c[suitOf(x)] = (c[suitOf(x)] || 0) + 1); const s = Object.keys(c).sort((a, b) => c[b] - c[a])[0]; return { u, s, n: c[s] || 0, voids: SUITS.filter(x => !c[x]).length }; });
     const holder = st.seats.find(u => st.hands[u].includes('S_A'));
     st.firstTrick = true;
     newTrick(st, idxOf(st, holder), now);
@@ -104,9 +112,10 @@
       return endHand(st, d, 'The same position repeated three times, so the hand ended as a stalemate. ' + nm(st, st.seats[d]) + ' held the most cards' + (d === leader ? ' (or was due to lead on a tie)' : '') + '.', now);
     }
     const order = []; st.trickNo = (st.trickNo || 0) + 1;
-    for (let k = 0; k < st.n; k++) { const i = (leader + k) % st.n; if (st.hands[st.seats[i]].length > 0) order.push(i); }
-    st.trick = { leader, order, pos: 0 }; st.table = []; st.led = null;
-    st.phase = 'TURN'; st.deadline = now + T.turn;
+    const dir = st.reverseNext ? -1 : 1; st.reverseNext = false;
+    for (let k = 0; k < st.n; k++) { const i = (leader + dir * k + st.n) % st.n; if (st.hands[st.seats[i]].length > 0) order.push(i); }
+    st.trick = { leader, order, pos: 0, rev: dir < 0 }; st.table = []; st.led = null;
+    st.phase = 'TURN'; st.deadline = now + (st.turnMs || T.turn);
   }
   const actorUid = st => (st.phase === 'TURN' ? st.seats[st.trick.order[st.trick.pos]] : null);
 
@@ -117,7 +126,7 @@
   }
 
   function resolve(st, preferred, finalHigh, now) {
-    st.seats.forEach((u, i) => { if (st.hands[u].length === 0 && !st.finished[i]) { st.finished[i] = true; ev(st, { k: 'out', u }, now); } });
+    st.seats.forEach((u, i) => { if (st.hands[u].length === 0 && !st.finished[i]) { st.finished[i] = true; ev(st, { k: 'out', u }, now); onOut(st, u, now); } });
     const act = activeIdx(st);
     if (act.length <= 1) {
       const donkey = act.length === 1 ? act[0] : finalHigh;
@@ -137,6 +146,9 @@
     st.losses[u]++;
     st.lastResult = { handNo: st.handNo, uid: u, reason };
     st.history.push({ handNo: st.handNo, uid: u });
+    ensure25(st); st.lastResult.bets = Object.assign({}, st.bets);
+    Object.entries(st.bets).forEach(([b, pick]) => { if (pick === u) st.betPts[b] = (st.betPts[b] || 0) + 1; });
+    st.seats.forEach(x => { const S = st.stats; if (x === u) S.streak[x] = 0; else { S.streak[x] = (S.streak[x] || 0) + 1; S.best[x] = Math.max(S.best[x] || 0, S.streak[x]); } });
     if (st.titles) { const lvl = st.losses[u] >= st.target ? 5 : Math.min(st.losses[u], 4); st.lastResult.level = lvl;
       const pool = shuffle((st.titles[lvl - 1] || []).filter(t => t !== st.titleOf[u]), secureRand);
       if (pool.length) { st.titleOf[u] = pool[0]; st.levelOf = st.levelOf || {}; st.levelOf[u] = lvl; st.lastResult.title = pool[0]; st.lastResult.titleOptions = pool.slice(1, 4); } }
@@ -181,7 +193,7 @@
     if (st.trick.pos >= st.trick.order.length) {
       // keep the completed trick on the table for a moment so everyone sees the last card
       st.phase = 'TRICK_END'; st.deadline = now + T.trickEnd;
-    } else st.deadline = now + T.turn;
+    } else st.deadline = now + (st.turnMs || T.turn);
     return null;
   }
 
@@ -206,6 +218,8 @@
     if (!cards.every(c => h.includes(c))) return 'CARD_NOT_OWNED';
     if (new Set(cards.map(suitOf)).size !== 1) return 'MIXED_CUT_SUITS';
     const giver = idxOf(st, uid), rec = highestLedOwner(st);
+    ensure25(st); const recU = st.seats[rec], shielded = st.shield[recU] === st.handNo; if (shielded) delete st.shield[recU];
+    { const S = st.stats, tot = cards.length + st.table.length; S.cuts[uid] = (S.cuts[uid] || 0) + 1; S.cards[uid] = (S.cards[uid] || 0) + tot; S.big[uid] = Math.max(S.big[uid] || 0, tot); const rk = uid + '>' + recU; S.rival[rk] = (S.rival[rk] || 0) + 1; }
     st.voids[uid] = Object.assign({}, st.voids[uid], { [st.led]: true });
     { const sty = st.style[uid] = st.style[uid] || { led: 0, shed: 0 }; const k = uid + st.led;
       if (st.ledBy[uid] && st.ledBy[uid][st.led] && !st.shedSeen[k]) { sty.shed++; st.shedSeen[k] = 1; }
@@ -213,7 +227,8 @@
       const cw = st.cutWith[uid] = st.cutWith[uid] || {}; cw[suitOf(cards[0])] = (cw[suitOf(cards[0])] || 0) + 1; }
     cards.forEach(c => { h.splice(h.indexOf(c), 1); (st.playedBy[uid] = st.playedBy[uid] || []).push({ c, k: 'cut', t: st.trickNo }); }); forget(st, uid, cards);
     ev(st, { k: 'cut', u: uid, to: st.seats[rec], n: cards.length, total: cards.length + st.table.length, suit: suitOf(cards[0]), led: st.led, cards: cards.slice() }, now);
-    st.transfer = { giver, recipient: rec, table: st.table.slice(), cut: cards.slice().sort(cardSort), endsAt: now + T.reveal };
+    st.transfer = { giver, recipient: rec, table: st.table.slice(), cut: cards.slice().sort(cardSort), endsAt: now + T.reveal, shield: shielded };
+    if (shielded) ev(st, { k: 'shielded', u: recU, to: uid }, now);
     st.table = []; st.firstTrick = false;
     st.phase = 'CUT_REVEAL'; st.deadline = now + T.reveal;
     log(st, nm(st, uid) + ' cut ' + cards.length + ' ' + SN(suitOf(cards[0])) + '. ' + nm(st, st.seats[rec]) + ' picks up ' + (cards.length + st.transfer.table.length) + ' cards.');
@@ -225,6 +240,7 @@
     const t = st.transfer; const ru = st.seats[t.recipient];
     st.finalView = { kind: 'cut', cards: t.table.slice(), cut: t.cut.slice(), giver: t.giver, recipient: t.recipient };
     const got = [...t.table.map(x => x.c), ...t.cut];
+    if (t.shield) { st.discard.push(...got); st.finalView.shield = true; st.transfer = null; return resolve(st, t.giver, null, now); }
     st.hands[ru].push(...got);
     st.hands[ru].sort(cardSort);
     st.known[ru] = (st.known[ru] || []).concat(got);
@@ -270,8 +286,11 @@
       case 'DEAL_BATCH': {
         if (ph !== 'DEALING') return 'WRONG_PHASE';
         if (uid !== st.seats[st.dealer]) return 'NOT_YOUR_TURN';
-        const c = a.payload && a.payload.count, r = st.dealTo;
+        const pc = planCount(st);
+        if (pc && a.payload && a.payload.rest) { while (st.dealTo >= 0) giveCards(st, planCount(st)); finishDeal(st, now); break; }
+        const c = pc && a.payload && a.payload.plan ? pc : a.payload && a.payload.count, r = st.dealTo;
         if (!Number.isInteger(c) || c < 1 || c > st.quotas[r] - st.dealt[r]) return 'INVALID_BATCH';
+        if (pc && c !== pc) return 'WRONG_DEAL_STYLE';
         giveCards(st, c);
         if (st.dealTo < 0) finishDeal(st, now); else st.deadline = Math.min(now + T.batch, st.dealTotal);
         break;
@@ -296,6 +315,19 @@
         if (!name) return 'EMPTY_NAME';
         st.titleOf[r.uid] = name; r.title = name; r.crownedBy = uid; ev(st, { k: 'crown', u: uid, to: r.uid, title: name }, now); log(st, nm(st, uid) + ' crowned ' + nm(st, r.uid) + ' as ' + name + '.'); break;
       }
+      case 'SHUFFLE_PICK': { const p = a.payload || {};
+        if (ph !== 'SHUFFLE') return 'WRONG_PHASE'; if (uid !== st.shuf.by) return 'NOT_YOUR_TURN';
+        if (!SHUF.includes(p.mode)) return 'BAD_MODE'; if (p.mode === st.lastShuf) return 'SAME_SHUFFLE';
+        applyShuffle(st, p.mode, !!p.secret, now, rand); break; }
+      case 'DECK_CUT': { if (ph !== 'DECK_CUT') return 'WRONG_PHASE'; if (uid !== st.shuf.cutter) return 'NOT_YOUR_TURN'; applyCut(st, a.payload, now, rand); break; }
+      case 'USE_POWER': { ensure25(st); const p = a.payload || {}, list = st.powers[uid] || [], i = list.indexOf(p.k);
+        if (!st.opts.powers || i < 0) return 'NO_POWER'; if (!['TURN', 'TRICK_END', 'CUT_REVEAL'].includes(ph)) return 'WRONG_PHASE';
+        const r = usePower(st, uid, p, now, rand); if (r) return r; list.splice(i, 1); break; }
+      case 'BET': { ensure25(st); const p = a.payload || {};
+        if (!st.opts.bets || !['TURN', 'TRICK_END', 'CUT_REVEAL'].includes(ph)) return 'WRONG_PHASE';
+        if (st.hands[uid].length) return 'NOT_OUT'; if (st.bets[uid]) return 'ALREADY_BET';
+        const act = activeIdx(st).map(j => st.seats[j]); if (act.length < 2 || !act.includes(p.pick)) return 'BAD_TARGET';
+        st.bets[uid] = p.pick; ev(st, { k: 'bet', u: uid, to: p.pick }, now); log(st, nm(st, uid) + ' bet that ' + nm(st, p.pick) + ' will be the Donkey.'); break; }
       case 'RESUME': {
         if (ph !== 'PAUSED') return 'WRONG_PHASE';
         if (uid !== st.pauseFor) return 'NOT_YOUR_TURN';
@@ -318,7 +350,9 @@
         if (st.bots[st.draw.winner]) { st.seats = st.lobby.slice(); startMatchPlay(st, now, rand); } break;
       case 'SEATING_ORDER': st.seats = st.lobby.slice(); log(st, 'Seating time ran out; join order kept.'); startMatchPlay(st, now, rand); break;
       case 'DEALER_DRAW': st.handNo = 0; startHand(st, now, rand); break;
-      case 'DEALING': while (st.dealTo >= 0) giveCards(st, 1); log(st, 'Dealing time ran out; the rest was dealt one card at a time.'); finishDeal(st, now); break;
+      case 'SHUFFLE': applyShuffle(st, st.lastShuf === 'machine' ? 'riffle7' : 'machine', false, now, rand); log(st, 'Shuffle time ran out, so the machine shuffled.'); break;
+      case 'DECK_CUT': applyCut(st, { kind: 'cut', at: 20 + rand(13) }, now, rand); break;
+      case 'DEALING': while (st.dealTo >= 0) giveCards(st, planCount(st) || 1); log(st, 'Dealing time ran out; the rest was dealt one card at a time.'); finishDeal(st, now); break;
       case 'TURN': { const u = autoAction(st, now); ev(st, { k: 'auto', u }, now); if (!st.bots[u]) { st.autoCount[u] = (st.autoCount[u] || 0) + 1; log(st, nm(st, u) + "’s move was made automatically.");
           if (st.autoCount[u] >= 2 && !st.pauseFor) st.pauseFor = u; } break; }
       case 'CUT_REVEAL': commitTransfer(st, now); break;
@@ -442,7 +476,11 @@
   function botAction(st, uid, rand, level) {
     rand = rand || secureRand; level = level || (st.levels && st.levels[uid]) || 'medium';
     const ph = st.phase;
-    if (ph === 'DEALING' && st.seats[st.dealer] === uid) { const r = st.dealTo; const left = st.quotas[r] - st.dealt[r]; return { type: 'DEAL_BATCH', payload: { count: 1 + rand(Math.min(left, 5)) } }; }
+    if (ph === 'SHUFFLE' && st.shuf && st.shuf.by === uid) { const ms = SHUF.filter(x => x !== st.lastShuf); return { type: 'SHUFFLE_PICK', payload: { mode: ms[rand(ms.length)], secret: rand(3) === 0 } }; }
+    if (ph === 'DECK_CUT' && st.shuf && st.shuf.cutter === uid) { const r = rand(10); return { type: 'DECK_CUT', payload: { kind: r < 6 ? 'cut' : r < 8 ? 'double' : 'knock', at: 8 + rand(37), peek: rand(4) === 0 } }; }
+    if (st.opts && st.opts.bets && st.hands && ['TURN', 'TRICK_END'].includes(ph) && !st.hands[uid].length && st.bets && !st.bets[uid]) { const act = activeIdx(st).map(j => st.seats[j]);
+      if (act.length >= 2) { const pick = act.slice().sort((x, y) => st.hands[y].length - st.hands[x].length)[0]; return { type: 'BET', payload: { pick } }; } }
+    if (ph === 'DEALING' && st.seats[st.dealer] === uid) { const pc = planCount(st); if (pc) return { type: 'DEAL_BATCH', payload: { count: pc } }; const r = st.dealTo; const left = st.quotas[r] - st.dealt[r]; return { type: 'DEAL_BATCH', payload: { count: 1 + rand(Math.min(left, 5)) } }; }
     if (ph !== 'TURN' || actorUid(st) !== uid) return null;
     if (level === 'pro') { const c = conspire(st, uid); if (c) return c; }
     const h = st.hands[uid], me = idxOf(st, uid);
@@ -503,7 +541,7 @@
       lobby: st.lobby, seats: st.seats, names: st.names, bots: st.bots, losses: st.losses, deadline: st.deadline,
       dealTotal: st.dealTotal || null,
       log: st.log, history: st.history, handNo: st.handNo, award: st.award, lastResult: st.lastResult, draw: st.draw,
-      dealer: st.dealer ?? null, target: st.target || 5, levelOf: st.levelOf || {}, endNext: st.endNext || null, style: st.style || {}, levels: st.levels, titleOf: st.titleOf, titles: st.titles, events: st.events || [], targets: st.targets || [], hintsOn: !!st.hintsOn, anchor: st.anchor ?? null, pauseFor: st.pauseFor, ready: st.ready, incompleteReason: st.incompleteReason || null };
+      dealer: st.dealer ?? null, target: st.target || 5, levelOf: st.levelOf || {}, endNext: st.endNext || null, style: st.style || {}, levels: st.levels, titleOf: st.titleOf, titles: st.titles, events: st.events || [], targets: st.targets || [], hintsOn: !!st.hintsOn, anchor: st.anchor ?? null, pauseFor: st.pauseFor, ready: st.ready, turnMs: st.turnMs || T.turn, incompleteReason: st.incompleteReason || null };
     if (st.hands) {
       p.counts = {}; st.seats.forEach((u, i) => p.counts[u] = st.phase === 'DEALING' ? st.dealt[i] : st.hands[u].length);
       p.quotas = st.quotas; p.dealt = st.dealt; p.dealTo = st.dealTo;
@@ -511,7 +549,7 @@
       p.transfer = st.transfer; p.finished = st.finished; p.discardCount = st.discard.length; p.deckCount = st.deck.length;
       p.trickNo = st.trickNo || 0; p.actor = actorUid(st); p.lastTrick = st.lastTrick || null; p.playedBy = st.playedBy || {}; p.highBy = st.highBy || {}; p.finalView = st.finalView || null; p.ledBy = st.ledBy || {}; p.cutWith = st.cutWith || {}; p.voids = st.voids || {}; p.known = st.known || {}; p.discard = st.discard.slice();
     }
-    return p;
+    return view25(st, p);
   }
   function privateHand(st, uid) { return (st.hands && st.hands[uid]) ? st.hands[uid].slice() : []; }
 
@@ -522,6 +560,93 @@
     return all.length === 52 && new Set(all).size === 52;
   }
 
-  const api = { setHighWeight: w => { HIGH_W = w; }, estimate, conspiracyHint, SUITS, RANKS, SUIT_NAME, T, suitOf, rankOf, fullDeck, cardSort, createMatch, apply, tick, botAction, publicView, privateHand, legalFor, actorUid, checkConservation, secureRand };
+
+  /* ===== 2.5: Donkey's shuffle power, magic cards, bets, blitz, stats ===== */
+  const SHUF = ['cut', 'shanti', 'ulta', 'over_lite', 'over_full', 'riffle1', 'riffle3', 'riffle7', 'wash', 'machine', 'marzi'];
+  /* shuffle style = deal style: how many cards each player gets per pass */
+  const DEAL_OF = { cut: 'all', shanti: 1, ulta: 5, over_lite: 4, over_full: 3, riffle1: 3, riffle3: 1, riffle7: 1, wash: 1, machine: 1 };
+  const DEALS = [1, 3, 4, 5, 'all'];
+  const SHUF_NAME = { shanti: 'Shanti Cut', cut: 'Sirf Cut', over_lite: 'Ghar Wala Shuffle (light)', over_full: 'Ghar Wala Shuffle (full)', riffle1: 'Riffle ×1', riffle3: 'Riffle ×3', riffle7: 'Riffle ×7', wash: 'Patta Ragdo', machine: 'Machine Shuffle', ulta: 'Ulta Pulta', marzi: 'Gadhe Ki Marzi' };
+  const POWERS = ['peek', 'shield', 'swap', 'reverse'];
+  const cutAt = (d, k) => d.slice(k).concat(d.slice(0, k));
+  function overhand(d, rand) { let out = [], i = 0; while (i < d.length) { const k = 3 + rand(8); out = d.slice(i, i + k).concat(out); i += k; } return out; }
+  function riffle(d, rand) { let c = 0; for (let i = 0; i < d.length; i++) c += rand(2); const a = d.slice(0, c), b = d.slice(c), out = [];
+    while (a.length || b.length) { if (rand(a.length + b.length) < a.length) out.push(a.shift()); else out.push(b.shift()); } return out; }
+  function doShuffle(mode, d, rand) {
+    let x = d.slice();
+    switch (mode) {
+      case 'cut': case 'shanti': return cutAt(x, 16 + rand(21));
+      case 'over_lite': for (let i = 3 + rand(2); i--;) x = overhand(x, rand); return x;
+      case 'over_full': for (let i = 10 + rand(3); i--;) x = overhand(x, rand); return x;
+      case 'riffle1': return riffle(x, rand);
+      case 'riffle3': for (let i = 3; i--;) x = riffle(x, rand); return x;
+      case 'riffle7': for (let i = 7; i--;) x = riffle(x, rand); return x;
+      case 'ulta': return cutAt(x.reverse(), 26);
+      default: return shuffle(x, rand);
+    }
+  }
+  function ensure25(st) {
+    st.opts = st.opts || { shuffle: false, powers: false, blitz: false, bets: false };
+    st.powers = st.powers || {}; st.peeks = st.peeks || {}; st.shield = st.shield || {}; st.bets = st.bets || {}; st.betPts = st.betPts || {};
+    st.stats = st.stats || { cuts: {}, cards: {}, big: {}, rival: {}, streak: {}, best: {}, first: {} };
+    return st;
+  }
+  function applyShuffle(st, mode, secret, now, rand) {
+    let actual = mode;
+    if (mode === 'marzi') { const pool = SHUF.filter(x => x !== 'marzi'); actual = pool[rand(pool.length)]; secret = true; }
+    st.deck = doShuffle(actual, st.deck, rand); st.lastShuf = mode;
+    Object.assign(st.shuf, { mode, actual, secret: !!secret, deal: mode === 'marzi' ? DEALS[rand(DEALS.length)] : DEAL_OF[actual] });
+    ev(st, { k: 'shuffle', u: st.shuf.by, mode: secret ? null : actual }, now);
+    log(st, nm(st, st.shuf.by) + (secret ? ' shuffled in secret.' : ' used ' + SHUF_NAME[actual] + '.'));
+    st.phase = 'DECK_CUT'; st.deadline = now + T.deckCut;
+  }
+  function applyCut(st, p, now, rand) {
+    p = p || {}; const kind = ['cut', 'knock', 'double'].includes(p.kind) ? p.kind : 'cut';
+    const at = Math.max(4, Math.min(48, Math.round(+p.at || 26)));
+    if (kind === 'cut') st.deck = cutAt(st.deck, at);
+    if (kind === 'double') { const a = 8 + rand(14), b = a + 10 + rand(14), d = st.deck; st.deck = d.slice(b).concat(d.slice(0, a), d.slice(a, b)); }
+    st.shuf.cut = { kind, at: kind === 'cut' ? at : null };
+    ev(st, { k: 'deckcut', u: st.shuf.cutter, kind, at: kind === 'cut' ? at : null }, now);
+    log(st, nm(st, st.shuf.cutter) + (kind === 'knock' ? ' knocked: no cut.' : kind === 'double' ? ' did a Double Kaat.' : ' cut the deck at ' + at + '.'));
+    if (p.peek) { st.shuf.bottom = st.deck[51]; ev(st, { k: 'bottom', u: st.shuf.cutter, c: st.deck[51] }, now); }
+    st.phase = 'DEALING'; st.deadline = now + T.batch; st.dealTotal = now + T.dealTotal;
+  }
+  function planCount(st) { const r = st.dealTo, left = st.quotas[r] - st.dealt[r], d = st.shuf && st.shuf.deal; return !d ? null : d === 'all' ? left : Math.min(d, left); }
+  function onOut(st, u, now, rand) {
+    ensure25(st); if (st.firstOut) return; st.firstOut = u; st.stats.first[u] = (st.stats.first[u] || 0) + 1;
+    if (st.opts.powers && !st.bots[u] && (st.powers[u] || []).length < 2) { const k = POWERS[(rand || secureRand)(POWERS.length)]; (st.powers[u] = st.powers[u] || []).push(k); ev(st, { k: 'earn', u, p: k }, now); }
+  }
+  function nextActive(st, i) { for (let k = 1; k < st.n; k++) { const j = (i + k) % st.n; if (st.hands[st.seats[j]].length) return j; } return -1; }
+  function usePower(st, uid, p, now, rand) {
+    const ph = st.phase, me = idxOf(st, uid);
+    if (!st.hands[uid].length) return 'YOU_ARE_OUT';
+    switch (p.k) {
+      case 'peek': { const h = st.hands[p.to]; if (!h || p.to === uid || !h.length) return 'BAD_TARGET';
+        st.peeks[uid] = { to: p.to, c: h[rand(h.length)], h: st.handNo }; ev(st, { k: 'power', u: uid, p: 'peek', to: p.to }, now); return null; }
+      case 'shield': if (st.shield[uid] === st.handNo) return 'ALREADY_SHIELDED'; st.shield[uid] = st.handNo; ev(st, { k: 'power', u: uid, p: 'shield' }, now); return null;
+      case 'reverse': if (st.reverseNext) return 'ALREADY_REVERSED'; st.reverseNext = true; ev(st, { k: 'power', u: uid, p: 'reverse' }, now); return null;
+      case 'swap': { if (ph !== 'TURN' || actorUid(st) !== uid) return 'NOT_YOUR_TURN'; const j = nextActive(st, me); if (j < 0) return 'BAD_TARGET';
+        const nu = st.seats[j], a = st.hands[uid], b = st.hands[nu], c1 = a[rand(a.length)], c2 = b[rand(b.length)];
+        a.splice(a.indexOf(c1), 1, c2); b.splice(b.indexOf(c2), 1, c1); a.sort(cardSort); b.sort(cardSort); forget(st, uid, [c1]); forget(st, nu, [c2]);
+        if (st.voids[uid]) delete st.voids[uid][suitOf(c2)]; if (st.voids[nu]) delete st.voids[nu][suitOf(c1)];
+        ev(st, { k: 'power', u: uid, p: 'swap', to: nu }, now); return null; }
+    }
+    return 'NO_POWER';
+  }
+  function privateExtra(st, uid) {
+    const pk = st.peeks && st.peeks[uid];
+    return pk && pk.h === st.handNo ? { peek: { to: pk.to, c: pk.c } } : null;
+  }
+  function view25(st, p) {
+    ensure25(st);
+    const endPh = ['HAND_END', 'HAND_RESULT', 'MATCH_RESULT', 'INCOMPLETE'].includes(st.phase), hidden = ['SHUFFLE', 'DECK_CUT', 'DEALING'].includes(st.phase);
+    const s = st.shuf;
+    p.opts = st.opts; p.turnMs = st.turnMs || T.turn; p.powers = st.powers; p.shield = Object.keys(st.shield).filter(u => st.shield[u] === st.handNo);
+    p.reverseNext = !!st.reverseNext; p.bets = st.bets; p.betPts = st.betPts; p.stats = st.stats; p.firstOut = st.firstOut || null; p.lastShuf = st.lastShuf || null;
+    p.shuf = s ? { deal: s.secret && hidden ? null : (s.deal || null), by: s.by, cutter: s.cutter, fresh: !!s.fresh, secret: !!s.secret, picked: !!s.mode, mode: s.secret && hidden ? null : (s.mode || null), actual: s.secret && hidden ? null : (s.actual || null), cut: s.cut || null, bottom: s.bottom || null, shape: endPh ? s.shape || null : null } : null;
+    return p;
+  }
+
+  const api = { privateExtra, SHUF, SHUF_NAME, DEAL_OF, POWERS, doShuffle, setHighWeight: w => { HIGH_W = w; }, estimate, conspiracyHint, SUITS, RANKS, SUIT_NAME, T, suitOf, rankOf, fullDeck, cardSort, createMatch, apply, tick, botAction, publicView, privateHand, legalFor, actorUid, checkConservation, secureRand };
   if (typeof module !== 'undefined') module.exports = api; else root.Engine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

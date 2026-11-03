@@ -24,15 +24,37 @@ const Music = {
         const len = this.ctx.sampleRate; const b = this.ctx.createBuffer(1, len, len); const d = b.getChannelData(0);
         for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; this.noise = b;
       }
-      this.ctx.resume(); this.applyVol(); this.state = 'on'; return true;
+      this.ctx.resume(); this.applyVol(); this.state = 'on'; this.mediaSession(); return true;
     } catch (e) { this.state = 'failed'; return false; }
   },
-  applyVol() { if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * .5, this.ctx.currentTime, .05); if (this.el) this.el.volume = this.muted ? 0 : this.vol; },
+  duck: 1,
+  applyVol() { const v = this.vol * (this.duck || 1); if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : v * .5, this.ctx.currentTime, .05); if (this.el) this.el.volume = this.muted ? 0 : v; },
   el: null,
-  ensureEl() { if (!this.el) { this.el = new Audio(); this.el.loop = true; this.el.preload = 'auto'; this.el.onerror = () => { this.songError = true; if (window.App) App.render(); }; } return this.el; },
+  /* sound effects need the audio engine even when you listen to your own music app */
+  ensureCtx() {
+    try { if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC();
+        this.master = this.ctx.createGain(); this.master.connect(this.ctx.destination);
+        const len = this.ctx.sampleRate; const b = this.ctx.createBuffer(1, len, len); const d = b.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; this.noise = b; this.applyVol(); }
+      this.ctx.resume(); } catch (e) {}
+  },
+  /* iPhones mute web audio when the ring/silent switch is on unless a media element is playing.
+     A near-silent looping <audio> puts the page in media-playback mode so sound is heard. */
+  mediaSession() {
+    if (this.keep) { this.keep.play().catch(() => {}); return; }
+    try {
+      const sr = 8000, n = sr, b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+      w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+      const a = new Audio(URL.createObjectURL(new Blob([b], { type: 'audio/wav' }))); a.loop = true; a.setAttribute('playsinline', ''); a.volume = 0.01;
+      this.keep = a; a.play().catch(() => {});
+    } catch (e) {}
+  },
+  ensureEl() { if (!this.el) { this.el = new Audio(); this.el.loop = true; this.el.preload = 'auto'; this.el.setAttribute('playsinline', ''); this.el.onerror = () => { this.songError = true; if (this.onSongError) { const f = this.onSongError; this.onSongError = null; f(); } else if (window.App) App.render(); }; } return this.el; },
   unlock() { try { const el = this.ensureEl(); if (!el.src) return; const p = el.play(); if (p) p.catch(() => {}); } catch (e) {} },
-  playSong(url, offsetMs) {
-    this.stopSynth(); const el = this.ensureEl(); this.songError = false;
+  /* stream a file, already `offsetMs` into the room's playback; `onFail` runs once if the file cannot be played (the caller falls back to synth) */
+  playSong(url, offsetMs, onFail) {
+    this.stopSynth(); const el = this.ensureEl(); this.songError = false; this.onSongError = onFail || null;
     if (el.dataset.u !== url) { el.src = url; el.dataset.u = url; }
     const seek = () => { const d = el.duration; if (d && isFinite(d)) el.currentTime = ((offsetMs / 1000) % d + d) % d;
       const p = el.play(); if (p) p.catch(() => { this.blocked = true; if (window.App) App.render(); }); };

@@ -1,9 +1,11 @@
-{
-  "name": "donkey-of-the-day",
-  "version": "2.0.0",
-  "description": "Donkey of the Day — online multiplayer card game for friends (self-hosted)",
-  "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=20" },
-  "dependencies": { "express": "4.21.2", "socket.io": "4.8.1" }
+﻿{
+  "name": "donkey-of-the-day-monorepo",
+  "private": true,
+  "description": "Donkey of the Day: game server and web app (app/), Lab 2.6 reference source, and project docs",
+  "scripts": {
+    "install:app": "npm --prefix app ci",
+    "start": "npm --prefix app start",
+    "test": "npm --prefix app test",
+    "loadtest": "npm --prefix app run loadtest"
+  }
 }
