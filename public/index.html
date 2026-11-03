@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Donkey of the Day</title>
+<meta name="description" content="Donkey of the Day — the card game for friends. Follow suit, cut when you can't, don't be the last one holding cards.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Mukta:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#E3EBE8; --surface:#F6F9F7; --ink:#15221E; --muted:#4D615B; --line:#C3D2CD;
+  --felt:#0F5563; --felt2:#0A4250; --feltInk:#EEF6F3; --feltMuted:#A6C8C2; --feltLine:rgba(255,255,255,.14);
+  --marigold:#F2A516; --rani:#C81D63; --card:#FBF6EA; --cardInk:#1C1A17; --cardRed:#C1272D;
+  --ok:#2E7D4F; --warn:#B4231F;
+  --display:"Rozha One", "Iowan Old Style", Georgia, serif;
+  --body:"Mukta", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --page:#06181C; --surface:#0D262C; --ink:#E6F0ED; --muted:#98B1AB; --line:#1F3F46;
+  --felt:#0B3F4A; --felt2:#072E36; --feltInk:#E9F3F0; --feltMuted:#93B7B1; --feltLine:rgba(255,255,255,.12);
+  --card:#F3EDDF; --ok:#5DBB86; --warn:#F07A73; color-scheme: dark; } }
+:root[data-theme="dark"]{ --page:#06181C; --surface:#0D262C; --ink:#E6F0ED; --muted:#98B1AB; --line:#1F3F46;
+  --felt:#0B3F4A; --felt2:#072E36; --feltInk:#E9F3F0; --feltMuted:#93B7B1; --feltLine:rgba(255,255,255,.12);
+  --card:#F3EDDF; --ok:#5DBB86; --warn:#F07A73; color-scheme: dark; }
+html{ height:100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+*,*::before,*::after{ box-sizing:border-box; }
+body{ margin:0; min-height:100%; background:var(--page); color:var(--ink); font:400 17px/1.45 var(--body); -webkit-tap-highlight-color:transparent; }
+button,input,select{ font:inherit; color:inherit; }
+button{ cursor:pointer; }
+:focus-visible{ outline:3px solid var(--marigold); outline-offset:2px; }
+.hidden{ display:none !important; }
+.stripe{ height:6px; background:repeating-linear-gradient(-45deg,var(--rani) 0 10px,var(--marigold) 10px 20px,var(--felt) 20px 30px); }
+.wrap{ max-width:720px; margin:0 auto; padding:16px; }
+h1,h2,h3{ font-family:var(--display); font-weight:400; margin:0; line-height:1.1; }
+.btn{ white-space:nowrap; border:0; border-radius:10px; padding:11px 18px; background:var(--felt); color:var(--feltInk); font-weight:700; min-height:44px; }
+.btn.alt{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--line); }
+.btn.gold{ background:var(--marigold); color:#1E1606; }
+.btn.small{ padding:6px 12px; min-height:36px; font-size:15px; }
+.btn:disabled{ opacity:.45; cursor:not-allowed; }
+.felt .btn.alt{ color:var(--feltInk); box-shadow:inset 0 0 0 1.5px var(--feltLine); }
+label.f{ display:block; font-weight:500; margin:14px 0 6px; }
+input.t{ width:100%; padding:11px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--surface); min-height:44px; }
+.muted{ color:var(--muted); }
+.note{ font-size:15px; color:var(--muted); }
+.err{ color:var(--warn); font-weight:500; }
+.row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.grow{ flex:1 1 auto; }
+
+/* home */
+#home .hero{ padding:36px 0 8px; }
+#home h1{ font-size:clamp(46px, 12vw, 84px); letter-spacing:-.5px; }
+#home .tag{ font-size:19px; color:var(--muted); margin:10px 0 0; max-width:30em; }
+.choices{ display:grid; gap:12px; margin-top:22px; }
+.choice{ background:var(--surface); border:1.5px solid var(--line); border-radius:14px; padding:16px; }
+.choice h3{ font-size:24px; margin-bottom:4px; }
+.joinrow{ display:flex; gap:8px; margin-top:10px; }
+.joinrow input{ text-transform:uppercase; letter-spacing:3px; font-weight:700; }
+
+/* lobby */
+.code{ font-family:var(--display); font-size:44px; letter-spacing:6px; }
+.list{ list-style:none; margin:8px 0 0; padding:0; border-top:1px solid var(--line); }
+.list li{ display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid var(--line); }
+.dot{ width:9px; height:9px; border-radius:50%; background:var(--muted); flex:none; }
+.dot.on{ background:var(--ok); }
+.tagp{ white-space:nowrap; font-size:13px; padding:1px 8px; border-radius:20px; box-shadow:inset 0 0 0 1px var(--line); color:var(--muted); }
+.tagp.go{ color:var(--ok); box-shadow:inset 0 0 0 1px var(--ok); }
+section.blk{ margin-top:22px; }
+section.blk > h2{ font-size:26px; }
+.tracks{ display:grid; gap:8px; margin-top:8px; }
+.track{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; border:1.5px solid var(--line); background:var(--surface); text-align:left; width:100%; }
+.track.sel{ border-color:var(--marigold); box-shadow:0 0 0 2px var(--marigold) inset; }
+.track b{ font-weight:700; }
+.seg{ display:inline-flex; border-radius:10px; box-shadow:inset 0 0 0 1.5px var(--line); overflow:hidden; }
+.seg button{ border:0; background:transparent; padding:8px 14px; min-height:40px; }
+.seg button[aria-pressed="true"]{ background:var(--felt); color:var(--feltInk); }
+details.rules{ margin-top:10px; background:var(--surface); border:1.5px solid var(--line); border-radius:12px; padding:10px 14px; }
+details.rules summary{ font-weight:700; cursor:pointer; }
+.rules ol, .rules ul{ padding-left:20px; margin:8px 0; }
+.rules li{ margin:4px 0; }
+
+/* game */
+#game{ min-height:100vh; display:flex; flex-direction:column; }
+.felt{ flex:1 0 auto; display:flex; flex-direction:column; background:radial-gradient(120% 90% at 50% 30%, var(--felt) 0%, var(--felt2) 100%); color:var(--feltInk); }
+.topbar{ display:flex; align-items:center; gap:8px; padding:8px 12px; }
+.topbar .ttl{ font-family:var(--display); font-size:20px; white-space:nowrap; }
+.topbar{ flex-wrap:nowrap; }
+@media (max-width:420px){ .chip .lbl{ display:none; } .chip.mus .lbl{ display:inline; } .chip.mus{ max-width:30vw; } .lvtxt{ display:none; } .seat .nm{ font-size:13px; } .seat .av{ width:18px; height:18px; font-size:11px; } .chip{ padding:5px 9px; font-size:13px; } .topbar .ttl{ font-size:17px; } }
+.chip{ white-space:nowrap; max-width:36vw; overflow:hidden; text-overflow:ellipsis; border:0; border-radius:20px; padding:5px 12px; background:rgba(255,255,255,.1); color:var(--feltInk); font-size:14px; min-height:34px; }
+.seats{ display:grid; grid-template-columns:repeat(var(--cols,4), minmax(0,1fr)); gap:6px; padding:4px 10px 8px; }
+.seat{ position:relative; border-radius:12px; padding:7px 8px; background:rgba(0,0,0,.18); min-width:0; border:2px solid transparent; }
+.seat.turn{ border-color:var(--marigold); }
+.seat.done{ opacity:.55; }
+.seat .nm{ font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; gap:4px; align-items:center; }
+.seat .ct{ font-size:13px; color:var(--feltMuted); display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+.pips{ display:flex; gap:3px; margin-top:3px; }
+.pip{ width:11px; height:11px; border-radius:3px; box-shadow:inset 0 0 0 1.5px var(--feltMuted); }
+.pip.on{ background:var(--rani); box-shadow:none; }
+.badge{ font-size:11px; font-weight:700; border-radius:6px; padding:0 5px; background:var(--marigold); color:#1E1606; flex:none; }
+.badge.x{ background:transparent; color:var(--feltMuted); box-shadow:inset 0 0 0 1px var(--feltMuted); }
+.react{ position:absolute; right:6px; top:-10px; font-size:24px; animation:pop 2.4s ease forwards; pointer-events:none; }
+@keyframes pop{ 0%{transform:scale(.4);opacity:0} 12%{transform:scale(1.15);opacity:1} 80%{opacity:1} 100%{opacity:0; transform:translateY(-10px)} }
+.dir{ text-align:center; font-size:12px; color:var(--feltMuted); margin-top:-4px; }
+.center{ flex:1 1 auto; padding:10px 14px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; min-height:230px; }
+.center h2{ font-size:28px; }
+.timer{ width:min(320px,80%); height:5px; border-radius:3px; background:rgba(255,255,255,.15); overflow:hidden; }
+.timer i{ display:block; height:100%; background:var(--marigold); width:100%; }
+.tlabel{ font-size:13px; color:var(--feltMuted); font-variant-numeric:tabular-nums; }
+.trick{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
+.played{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:13px; color:var(--feltMuted); max-width:76px; }
+.played span{ max-width:76px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status{ font-size:17px; }
+.status b{ color:var(--marigold); font-weight:700; }
+.ticker{ font-size:13px; color:var(--feltMuted); padding:0 14px 6px; min-height:20px; text-align:center; }
+
+.card{ --w:52px; width:var(--w); height:calc(var(--w)*1.42); border-radius:8px; background:var(--card); color:var(--cardInk); border:0; padding:4px 0 0 5px;
+  display:flex; flex-direction:column; align-items:flex-start; line-height:1; box-shadow:0 1px 0 rgba(0,0,0,.25), 0 3px 8px rgba(0,0,0,.18); flex:none; position:relative; }
+.card .r{ font-weight:700; font-size:calc(var(--w)*.36); }
+.card .s{ font-size:calc(var(--w)*.34); }
+.card .big{ position:absolute; right:5px; bottom:3px; font-size:calc(var(--w)*.5); opacity:.9; }
+.card.red{ color:var(--cardRed); }
+.card.back{ background:repeating-linear-gradient(45deg,var(--rani) 0 6px,#9E1550 6px 12px); box-shadow:inset 0 0 0 3px var(--card), 0 2px 6px rgba(0,0,0,.2); }
+.card.sm{ --w:40px; }
+.card.lg{ --w:64px; }
+
+.me{ background:var(--surface); color:var(--ink); border-top:1px solid var(--line); padding:8px 0 10px; }
+.me .info{ display:flex; align-items:center; gap:8px; padding:0 12px 6px; font-size:15px; }
+.me .info .pip{ box-shadow:inset 0 0 0 1.5px var(--muted); }
+.me .info .pip.on{ background:var(--rani); box-shadow:none; }
+.hand{ display:flex; overflow-x:auto; padding:14px 12px 6px; scroll-padding:12px; }
+.hand .card{ --w:58px; margin-right:-16px; transition:transform .12s; }
+.hand .card:last-child{ margin-right:0; }
+.hand .card[aria-pressed="true"]{ transform:translateY(-12px); box-shadow:0 0 0 3px var(--marigold), 0 6px 12px rgba(0,0,0,.25); }
+.hand .card.dim{ filter:grayscale(.6) brightness(.82); }
+.hand .gap{ width:14px; flex:none; }
+.actions{ display:flex; gap:8px; align-items:center; padding:6px 12px 0; flex-wrap:wrap; }
+.actions .msg{ font-size:15px; flex:1 1 180px; }
+.stepper{ display:inline-flex; align-items:center; gap:10px; }
+.stepper button{ width:44px; height:44px; border-radius:50%; border:0; background:rgba(255,255,255,.14); color:var(--feltInk); font-size:22px; }
+.stepper output{ font-family:var(--display); font-size:34px; min-width:40px; }
+.prog{ display:grid; grid-template-columns:auto 1fr auto; gap:4px 10px; font-size:14px; width:min(360px,100%); text-align:left; }
+.bar{ height:6px; border-radius:3px; background:rgba(255,255,255,.15); align-self:center; overflow:hidden; }
+.bar i{ display:block; height:100%; background:var(--feltMuted); }
+.order{ list-style:none; padding:0; margin:0; width:min(360px,100%); }
+.order li{ display:flex; align-items:center; gap:8px; padding:6px 8px; border-bottom:1px solid var(--feltLine); text-align:left; }
+.order li span{ flex:1; }
+.order button{ width:40px; height:40px; border-radius:8px; border:0; background:rgba(255,255,255,.12); color:var(--feltInk); }
+.draws{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+.scores{ border-collapse:collapse; font-size:15px; margin-top:6px; }
+.scores td,.scores th{ padding:5px 10px; text-align:left; border-bottom:1px solid var(--feltLine); }
+.scores th{ font-weight:500; color:var(--feltMuted); }
+
+/* the award */
+.award{ position:relative; width:min(420px,100%); padding:22px 18px 18px; border-radius:16px; background:var(--card); color:var(--cardInk);
+  box-shadow:0 0 0 6px var(--marigold), 0 0 0 12px var(--rani), 0 14px 30px rgba(0,0,0,.35); margin:14px 0; }
+.award .cap{ font-size:15px; color:#6A5B45; }
+.award h2{ font-size:clamp(36px,10vw,52px); color:var(--rani); margin:2px 0 6px; }
+.award .who{ font-family:var(--display); font-size:32px; }
+.award .scores td,.award .scores th{ border-color:#E2D8C2; }
+.award .scores th{ color:#6A5B45; }
+.ass{ font-size:64px; line-height:1; }
+
+/* sheets */
+.sheet{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:20; }
+.sheet > div{ background:var(--surface); color:var(--ink); width:min(640px,100%); max-height:86vh; overflow:auto; border-radius:18px 18px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px)); }
+.sheet h2{ font-size:28px; margin-bottom:6px; }
+.toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(20px + env(safe-area-inset-bottom,0px)); background:var(--ink); color:var(--page); padding:10px 16px; border-radius:10px; z-index:30; max-width:90vw; font-size:15px; }
+.reactbar{ display:flex; gap:4px; }
+.reactbar button{ border:0; background:rgba(255,255,255,.1); border-radius:20px; width:38px; height:34px; font-size:18px; }
+
+/* v2 additions */
+.av{ display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--c); color:#1A1206; font-weight:700; font-size:12px; flex:none; }
+.seat{ border-top:3px solid var(--c); }
+.seat .nm{ gap:5px; }
+.ttl2{ font-size:12px; color:#FFB3CF; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ttl3{ font-size:13px; color:var(--rani); font-weight:500; }
+.minirow{ display:flex; align-items:center; gap:4px; font-size:12px; color:var(--feltMuted); margin-top:4px; }
+.card.mini{ --w:24px; padding:2px 0 0 3px; border-radius:4px; }
+.card.mini .big{ display:none; }
+.played{ position:relative; max-width:96px; }
+.played .ord{ position:absolute; top:-8px; left:-8px; z-index:2; width:22px; height:22px; border-radius:50%; background:var(--c); color:#1A1206; font-size:12px; font-weight:700; display:grid; place-items:center; }
+.played .card{ box-shadow:0 0 0 3px var(--c), 0 3px 8px rgba(0,0,0,.25); }
+.played.hi .card{ box-shadow:0 0 0 3px var(--c), 0 0 0 7px var(--marigold), 0 6px 14px rgba(0,0,0,.35); }
+.played .who{ display:inline-flex; align-items:center; gap:4px; margin-top:6px; padding:2px 8px 2px 2px; border-radius:20px; background:rgba(0,0,0,.28); color:var(--feltInk); font-size:13px; max-width:96px; }
+.played .who .av{ width:18px; height:18px; font-size:11px; }
+.played .who span:last-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hitag{ font-size:11px; font-weight:700; color:#1E1606; background:var(--marigold); border-radius:6px; padding:0 6px; margin-top:4px; }
+.trick{ gap:16px 14px; padding-top:8px; }
+.titles{ padding-left:0; list-style:none; margin:8px 0 0; display:grid; gap:6px; }
+.titles li{ display:grid; grid-template-columns:110px 1fr; align-items:center; gap:8px; }
+select.lvl{ border:1.5px solid var(--line); border-radius:8px; background:var(--surface); padding:6px 8px; min-height:36px; }
+.unread{ display:inline-block; min-width:18px; padding:0 5px; border-radius:9px; background:var(--rani); color:#fff; font-size:12px; font-weight:700; line-height:18px; text-align:center; }
+.chatbtn{ margin-top:18px; }
+.award .rank{ font-family:var(--display); font-size:22px; color:var(--rani); margin-top:-2px; }
+#chat{ position:fixed; z-index:15; display:flex; flex-direction:column; background:var(--surface); color:var(--ink); }
+#chat .head{ display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); }
+#chat .head h2{ font-size:22px; flex:1; }
+#chatlist{ flex:1 1 auto; overflow:auto; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+.cmsg{ display:flex; flex-direction:column; gap:2px; max-width:88%; }
+.cmsg .from{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); }
+.cmsg .from .av{ width:16px; height:16px; font-size:10px; }
+.cmsg .txt{ background:var(--page); border-left:3px solid var(--c); padding:6px 10px; border-radius:4px 10px 10px 4px; overflow-wrap:anywhere; }
+.cmsg.mine{ align-self:flex-end; align-items:flex-end; }
+.cmsg.mine .txt{ border-left:0; border-right:3px solid var(--c); border-radius:10px 4px 4px 10px; }
+#chat .send{ display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--line); }
+#chat .send input{ flex:1; }
+@media (max-width: 899px){
+  #chat{ left:0; right:0; bottom:0; height:min(70vh,560px); border-radius:18px 18px 0 0; box-shadow:0 -10px 30px rgba(0,0,0,.3); transform:translateY(105%); transition:transform .2s; }
+  #chat.open{ transform:none; }
+  #chat:not(.open){ visibility:hidden; transition:transform .2s, visibility 0s .2s; }
+}
+@media (min-width: 900px){
+  body.inroom #app{ margin-right:340px; }
+  #chat{ right:0; top:6px; bottom:0; width:340px; border-left:1px solid var(--line); }
+  #chat .closer, .chatchip, .chatbtn, .chatbtn2{ display:none; }
+  #game{ max-width:1000px; margin:0 auto; }
+  .center{ min-height:340px; }
+  .card.lg{ --w:76px; }
+  .seat{ padding:10px 12px; }
+}
+
+
+/* v3: story, tracker, conspiracy */
+.strip{ display:flex; align-items:center; gap:6px; padding:0 10px 8px; overflow-x:auto; }
+.strip .chip{ flex:none; }
+.stripevs{ display:flex; gap:6px; }
+.sev{ display:inline-flex; align-items:center; gap:3px; padding:3px 8px 3px 5px; border-radius:16px; background:rgba(0,0,0,.25); border-bottom:2px solid var(--c); font-size:13px; flex:none; }
+.sev .av{ width:18px; height:18px; font-size:10px; }
+.sev b{ color:var(--marigold); }
+.banner{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; max-width:min(520px,100%); padding:10px 14px; border-radius:14px; background:rgba(0,0,0,.32); border:2px solid var(--c); font-size:15px; animation:bannerLife 7s ease forwards; }
+.banner .bi{ font-size:26px; }
+.banner.b-cut{ border-color:var(--rani); }
+.banner .arrow, .ev .arrow{ color:var(--marigold); font-weight:700; }
+@keyframes bannerLife{ 0%{ transform:scale(.85); opacity:0 } 6%{ transform:scale(1.04); opacity:1 } 12%{ transform:scale(1) } 85%{ opacity:1 } 100%{ opacity:.0 } }
+.fx{ display:inline-block; margin-top:4px; font-size:12px; font-weight:700; padding:1px 7px; border-radius:10px; background:var(--marigold); color:#1E1606; animation:fxLife 6s ease forwards; }
+.fx-cut-to{ background:var(--rani); color:#fff; }
+.fx-out{ background:var(--ok); color:#fff; }
+@keyframes fxLife{ 0%{ transform:scale(.6); opacity:0 } 8%{ transform:scale(1.15); opacity:1 } 16%{ transform:scale(1) } 80%{ opacity:1 } 100%{ opacity:0 } }
+.ev{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; }
+.ev .evi{ font-size:20px; width:26px; text-align:center; }
+.ev .evt{ flex:1 1 200px; }
+.evcards{ display:flex; gap:3px; }
+.whisper{ margin:6px 12px 0; padding:8px 12px; border-radius:12px; background:#2B1630; color:#F6DDF0; font-size:15px; border-left:4px solid var(--rani); }
+.risk{ margin:6px 12px 0; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:14px; color:var(--muted); }
+.rk{ display:inline-flex; align-items:center; gap:4px; padding:2px 8px 2px 3px; border-radius:14px; box-shadow:inset 0 0 0 1.5px var(--line); color:var(--ink); }
+.rk .av{ width:18px; height:18px; font-size:10px; }
+.rk.warm{ box-shadow:inset 0 0 0 1.5px var(--marigold); }
+.rk.hot{ background:var(--rani); color:#fff; box-shadow:none; }
+.sheet .risk{ margin:6px 0; }
+table.trk{ border-collapse:collapse; width:100%; font-size:14px; margin-top:8px; }
+.trk th,.trk td{ padding:6px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+.trk th{ font-weight:500; text-align:center; }
+.trk td.pv{ text-align:center; font-variant-numeric:tabular-nums; border-radius:6px; }
+.pv.cool{ color:var(--muted); }
+.pv.warm{ background:rgba(242,165,22,.22); }
+.pv.hot{ background:rgba(200,29,99,.28); font-weight:700; }
+.pv.sure{ background:var(--rani); color:#fff; font-weight:700; }
+.trk .av{ width:20px; height:20px; font-size:11px; vertical-align:middle; }
+.kn{ display:flex; gap:2px; flex-wrap:wrap; margin-top:3px; }
+ul.check{ list-style:none; padding:0; margin:6px 0; }
+ul.check li{ display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); }
+ul.check li span:first-child{ width:24px; text-align:center; flex:none; }
+
+
+/* v4 */
+.watchbar{ margin:0 10px 6px; padding:6px 10px; border-radius:10px; background:rgba(0,0,0,.25); font-size:14px; }
+.me.spect .info{ padding-bottom:4px; }
+.fx.think{ background:rgba(255,255,255,.16); color:var(--feltInk); animation:none; }
+h4.sub{ font:700 15px/1.3 var(--body); margin:14px 0 6px; }
+.track:disabled{ opacity:.55; cursor:not-allowed; }
+.teases{ padding:6px 12px; border-top:1px solid var(--line); display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.teaserow{ display:flex; gap:6px; overflow-x:auto; width:100%; padding-bottom:2px; }
+.chip2{ flex:none; border:1.5px solid var(--line); background:var(--page); border-radius:16px; padding:4px 10px; font-size:13px; white-space:nowrap; }
+textarea.t{ width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--surface); font:inherit; color:inherit; }
+sup{ color:var(--rani); font-weight:700; }
+
+
+/* v5 */
+.series{ font:500 13px var(--body); color:var(--feltMuted); margin-left:4px; }
+.seriesban{ padding:8px 14px; border-radius:12px; background:var(--marigold); color:#1E1606; font-size:17px; }
+.seat{ cursor:pointer; }
+.hist{ display:flex; align-items:center; gap:2px; margin-top:4px; flex-wrap:wrap; }
+.hist .more{ font-size:11px; color:var(--feltMuted); }
+.hcard{ display:inline-flex; border-radius:5px; }
+.hcard.k-cut{ box-shadow:0 0 0 2px var(--rani); }
+.hcard.k-lead{ box-shadow:0 0 0 2px var(--feltMuted); }
+.hcard.now{ box-shadow:0 0 0 2px var(--marigold); }
+.myhist{ padding:0 12px; }
+.myhist .hist .note{ margin-right:6px; font-size:13px; }
+.myhist .hcard.k-lead{ box-shadow:0 0 0 2px var(--muted); }
+.hl{ display:inline-flex; align-items:center; gap:4px; font-size:13px; margin-right:8px; }
+.hl.k-cut{ color:var(--rani); font-weight:700; }
+.lvlbadge{ display:inline-block; font:700 11px var(--body); background:var(--rani); color:#fff; border-radius:5px; padding:0 4px; vertical-align:1px; }
+.lvl-line{ margin:0; color:var(--feltMuted); }
+.xfer{ width:min(560px,100%); display:flex; flex-direction:column; gap:8px; }
+.xflow{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:8px; }
+.xp{ display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 10px; border-radius:12px; min-width:84px; }
+.xp .av{ width:34px; height:34px; font-size:16px; }
+.xp b{ max-width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.xp small{ color:var(--feltMuted); }
+.xp.g{ background:color-mix(in srgb, var(--g) 22%, transparent); border:2px solid var(--g); }
+.xp.r{ background:color-mix(in srgb, var(--r) 22%, transparent); border:2px solid var(--r); }
+.xarrow{ position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.xarrow i{ display:block; width:100%; height:6px; border-radius:3px; background:linear-gradient(90deg, var(--g), var(--r)); position:relative; }
+.xarrow i::after{ content:""; position:absolute; right:-2px; top:50%; transform:translateY(-50%); border:8px solid transparent; border-left:12px solid var(--r); border-right:0; }
+.xarrow em{ font-style:normal; font-size:13px; text-align:center; }
+.xwhy{ margin:0; font-size:15px; }
+.xgroups{ display:flex; flex-direction:column; gap:8px; max-height:46vh; overflow:auto; }
+.xg{ padding:8px; border-radius:12px; background:rgba(0,0,0,.18); }
+.xg.cutg{ border:2px dashed var(--g); }
+.xgh{ font-size:13px; color:var(--feltMuted); margin-bottom:6px; text-align:left; }
+
+
+
+@media (min-width:700px){ .hand .card{ --w:66px; margin-right:-10px; } .card{ --w:60px; } }
+@media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+
+/* ===== One screen, no page scrolling during a match ===== */
+body.ingame{ overflow:hidden; height:100dvh; }
+body.ingame #app{ height:calc(100dvh - 6px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)); }
+#game{ height:100%; min-height:0; display:flex; flex-direction:column; overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 30%, var(--felt) 0%, var(--felt2) 100%); color:var(--feltInk); }
+#game .felt{ display:contents; }
+#game .topbar, #game .watchbar, #game .seats, #game .dir, #game .strip{ flex:none; }
+#game .center{ flex:1 1 auto; min-height:0; overflow-y:auto; justify-content:flex-start; padding-top:8px; }
+#game .center > :first-child{ margin-top:auto; }
+#game .center > :last-child{ margin-bottom:auto; }
+#game .me{ flex:none; max-height:50%; overflow-y:auto; }
+#game .me > .actions:last-child{ position:sticky; bottom:-10px; z-index:3; background:var(--surface); padding-bottom:8px; }
+#game .myhist .hist{ flex-wrap:nowrap; overflow-x:auto; }
+#game .myhist .hist .note{ white-space:nowrap; }
+#game .seat .hist{ flex-wrap:nowrap; overflow:hidden; }
+#game .center [data-a="next"], #game .center [data-a="resume"], #game .center [data-a="seat-confirm"]{ position:sticky; bottom:0; z-index:5; box-shadow:0 -6px 12px rgba(0,0,0,.25); }
+#game .center .row:has([data-a="rematch"]), #game .center .row:has([data-a="deal"]){ position:sticky; bottom:0; z-index:5; background:var(--felt2); padding:6px; border-radius:10px; box-shadow:0 -6px 12px rgba(0,0,0,.25); }
+.scorechips{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+.sc{ display:inline-flex; align-items:center; gap:5px; padding:3px 10px 3px 4px; border-radius:14px; background:rgba(0,0,0,.25); font-size:14px; }
+.sc b{ color:var(--marigold); }
+/* shorter phones held upright: tighten so everything stays on one screen */
+@media (orientation: portrait) and (max-height: 760px){
+  #game .topbar{ padding:5px 10px; }
+  #game .seat{ padding:5px 6px; }
+  #game .seat .ttl2{ font-size:11px; }
+  #game .seat .ct{ font-size:12px; }
+  #game .seat .pip{ width:9px; height:9px; }
+  #game .seat .hist .card.mini{ --w:20px; }
+  #game .dir{ font-size:12px; margin:0 0 2px; }
+  #game .center{ gap:6px; padding:4px 10px; }
+  #game .center h2{ font-size:22px; }
+  #game .center .card.lg{ --w:46px; }
+  #game .center .ass{ display:none; }
+  #game .center .award{ padding:12px 12px 10px; margin:8px 0; }
+  #game .center .award h2{ font-size:32px; }
+  #game .center .banner{ padding:6px 10px; font-size:13px; }
+  #game .hand{ padding:10px 10px 4px; }
+  #game .hand .card{ --w:50px; }
+  #game .me .info{ padding-bottom:2px; }
+  #game .strip{ padding-bottom:4px; }
+}
+/* lobby: settings fold away, your controls stay at the bottom */
+details.set{ margin-top:12px; background:var(--surface); border:1.5px solid var(--line); border-radius:12px; padding:8px 14px; }
+details.set > summary{ font-family:var(--display); font-size:22px; cursor:pointer; }
+details.set[open] > summary{ margin-bottom:6px; }
+.lobbybar{ position:sticky; bottom:0; z-index:4; margin:14px -16px 0; padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px)); background:var(--page); border-top:1.5px solid var(--line); box-shadow:0 -8px 16px rgba(0,0,0,.08); }
+.lobbybar section.blk{ margin-top:0; }
+.lobbybar .chatbtn{ margin-top:8px; }
+.lobbybar > section.blk:last-child, .lobbybar > p:last-child{ margin:8px 0 0; }
+.wrap.lobby section.blk h2{ font-size:24px; }
+.wrap.lobby .list li{ padding:5px 2px; gap:6px; flex-wrap:nowrap; }
+#home{ padding-top:8px; padding-bottom:8px; }
+#home .hero{ padding:10px 0 4px; }
+#home h1{ font-size:clamp(38px, 11vw, 72px); }
+#home .tag{ font-size:16px; margin-top:4px; }
+.homeform{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+.homeform .choice{ padding:12px 14px; }
+.homeform .choice h3{ font-size:22px; }
+.homeform .choice .note{ margin:4px 0 0; }
+.namerow{ flex-wrap:nowrap; }
+.namerow input{ min-width:0; }
+.homeform select.lvl{ min-height:44px; }
+.homeform .choice .btn{ padding:10px 12px; }
+.suitrow{ margin-top:8px; }
+.ver{ margin-left:auto; font-size:12px; color:var(--muted); }
+#home .tag.labban{ color:#fff; font-size:14px; }
+.labban{ display:inline-block; padding:3px 10px; border-radius:8px; background:#5B2A86; color:#fff; font-size:12px; line-height:1.35; }
+.namerow{ margin-top:10px; }
+.wrap.lobby{ overflow-x:hidden; }
+.lobhead h1{ font-size:30px; }
+.lobhead .code{ font-size:34px; }
+.pname{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wrap.lobby select.lvl{ min-height:32px; padding:2px 4px; font-size:14px; }
+.btn.rm{ min-height:32px; padding:2px 10px; }
+.wrap.lobby .tagp{ font-size:12px; padding:1px 6px; }
+.lobbybar .btn{ min-height:40px; padding:8px 14px; }
+.startrow{ display:flex; align-items:center; gap:10px; margin-top:8px !important; }
+.startrow .note{ font-size:13px; line-height:1.3; }
+.wrap.lobby section.blk:has(.list){ margin-top:10px; }
+.wrap.lobby details.set{ margin-top:8px; padding:6px 12px; }
+.wrap.lobby details.set > summary{ font-size:20px; }
+details.set section.sub{ padding:8px 0; border-top:1px solid var(--line); }
+details.set section.sub:first-of-type{ border-top:0; }
+details.set section.sub h3{ font-size:20px; margin-bottom:4px; }
+.lobbybar section.you .row{ gap:8px; }
+.lobbybar .note{ margin:6px 0 0; }
+.cutbar .msg{ flex-basis:100%; }
+@media (orientation: portrait) and (max-height: 760px){ #game.ph-TURN .banner{ display:none; } }
+
+
+/* ===== Landscape phones: everything on one screen ===== */
+@media (orientation: landscape) and (max-height: 600px) {
+  :root{ padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-area-inset-right,0px); }
+  .stripe{ height:4px; }
+  body.inroom #app{ margin-right:0; }
+  /* chat becomes a side drawer */
+  #chat{ left:auto; right:0; top:0; bottom:0; width:min(380px,48vw); height:auto; border-radius:0; border-left:1px solid var(--line); box-shadow:-10px 0 30px rgba(0,0,0,.3); transform:translateX(105%); transition:transform .2s, visibility 0s .2s; }
+  #chat.open{ transform:none; visibility:visible; transition:transform .2s; }
+  #chat:not(.open){ visibility:hidden; }
+  #chat .closer, .chatchip, .chatbtn{ display:inline-flex; }
+  .sheet > div{ max-height:92vh; width:min(720px,100%); }
+
+  /* game: players on the left, play area on the right */
+  #game{ display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,1.08fr); grid-template-rows:auto auto minmax(0,1fr) auto auto; }
+  #game .topbar{ grid-column:1 / -1; grid-row:1; padding:4px 10px; gap:6px; }
+  #game .topbar .ttl{ font-size:17px; }
+  #game .chip{ min-height:30px; padding:3px 10px; font-size:13px; }
+  #game .chip .lbl{ display:inline; }
+  #game .chip.mus{ max-width:22vw; }
+  #game .watchbar{ grid-column:2; grid-row:2; margin:0 10px 4px; }
+  #game .seats{ grid-column:1; grid-row:2 / 5; grid-template-columns:repeat(2, minmax(0,1fr)); align-content:start; overflow:auto; min-height:0; padding:2px 8px 4px; gap:6px; }
+  #game .dir{ grid-column:1; grid-row:5; align-self:end; margin:0 0 4px; font-size:12px; }
+  #game .center{ grid-column:2; grid-row:3; padding:6px 10px; gap:6px; }
+  #game .center h2{ font-size:22px; }
+  #game .center .status{ font-size:15px; margin:2px 0; }
+  #game .center .card.lg{ --w:44px; }
+  #game .center .trick{ gap:10px 8px; padding-top:6px; }
+  #game .center .banner{ padding:6px 10px; font-size:13px; }
+  #game .center .banner .bi{ font-size:20px; }
+  #game .center .ass{ font-size:32px; }
+  #game .center .award{ padding:10px 12px 8px; margin:8px 0; }
+  #game .center .award h2{ font-size:28px; }
+  #game .center .award .who{ font-size:22px; }
+  #game .center .seriesban{ font-size:14px; padding:6px 10px; }
+  #game .center .stepper button{ width:38px; height:38px; }
+  #game .center .stepper output{ font-size:26px; }
+  #game .strip{ grid-column:2; grid-row:4; padding:2px 10px 4px; }
+  #game .me{ grid-column:2; grid-row:5; max-height:64vh; padding:4px 0 6px; border-top:0; border-radius:14px 0 0 0; }
+  #game .me .info{ padding:0 10px 2px; font-size:14px; }
+  #game .myhist{ padding:0 10px; }
+  #game .hand{ padding:12px 10px 4px; }
+  #game .hand .card{ --w:46px; margin-right:-14px; }
+  #game .hand .card[aria-pressed="true"]{ transform:translateY(-9px); }
+  #game .actions{ padding:4px 10px 0; gap:6px; }
+  #game .actions .msg{ font-size:13px; flex-basis:120px; }
+  #game .actions .btn{ min-height:38px; padding:6px 12px; }
+  #game .risk, #game .whisper{ margin:4px 10px 0; font-size:13px; }
+  #game .whisper{ padding:5px 10px; }
+  #game .seat .hist .card.mini{ --w:22px; }
+
+  /* lobby and home in two columns to cut scrolling */
+  .wrap.lobby{ max-width:none; column-count:2; column-gap:28px; padding:4px 18px 0; }
+  .wrap.lobby > *{ break-inside:avoid; }
+  .wrap.lobby section.blk{ margin-top:12px; }
+  #home{ max-width:none; display:grid; grid-template-columns:1fr 1.2fr; gap:0 28px; align-items:center; min-height:calc(100dvh - 14px); padding:2px 18px; }
+  #home .hero{ padding:0; }
+  #home h1{ font-size:clamp(34px, 6vw, 52px); }
+  .homeform{ margin-top:0; gap:8px; }
+  .homeform .choice{ padding:8px 12px; }
+  .homeform .choice > .row:has([data-a="create"]){ display:inline-flex; margin-right:8px; vertical-align:middle; }
+  .homeform .joinrow{ display:inline-flex; margin-top:6px; vertical-align:middle; }
+  .homeform .joinrow input{ width:110px; }
+  #home > section.blk{ grid-column:1 / -1; }
+
+  /* give the middle panel room when it's not your move */
+  #game:not(.ph-TURN) .hand .card{ --w:34px; margin-right:-10px; }
+  #game:not(.ph-TURN) .hand{ padding-top:4px; }
+  #game .myhist .hist{ flex-wrap:nowrap; overflow-x:auto; }
+  #game .myhist .card.mini{ --w:20px; }
+  #game.ph-TURN .actions .btn.small{ min-height:32px; padding:3px 9px; font-size:13px; }
+  #game .myhist .hist .note{ white-space:nowrap; }
+  #game.ph-TURN .actions .msg{ font-size:12px; line-height:1.3; }
+}
+
+
+
+</style>
+</head>
+<body>
+<div class="stripe" aria-hidden="true"></div>
+<main id="app"></main>
+<aside id="chat" class="hidden" aria-label="Table chat"><div class="head"><h2>Table chat</h2><button class="btn alt small closer" data-a="chat-close">Close</button></div>
+<div id="chatlist" aria-live="polite"></div>
+<div id="teases" class="teases"></div>
+<div class="send"><input id="chatin" class="t" maxlength="240" placeholder="Message the table" aria-label="Chat message" autocomplete="off"><button class="btn" data-a="chat-send">Send</button></div></aside>
+<div id="sheet" class="sheet hidden" role="dialog" aria-modal="true"></div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+/* Donkey of the Day — authoritative rules engine (rule version 0.1 defaults) */
+(function (root) {
+  const SUITS = ['C', 'D', 'H', 'S'];
+  const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  const RV = {}; RANKS.forEach((r, i) => RV[r] = i + 2);
+  const SUIT_NAME = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
+  const T = { seatDraw: 4500, seatOrder: 45000, dealerDraw: 4500, batch: 15000, dealTotal: 120000,
+              turn: 90000, handEnd: 5000, trickEnd: 3000, reveal: 20000, ready: 120000, pause: 120000 };
+  const suitOf = c => c[0];
+  const rankOf = c => RV[c.slice(2)];
+  const fullDeck = () => { const d = []; for (const s of SUITS) for (const r of RANKS) d.push(s + '_' + r); return d; };
+  function secureRand(n) {
+    const c = (typeof crypto !== 'undefined' && crypto.getRandomValues) ? crypto : require('crypto').webcrypto;
+    const lim = Math.floor(0x100000000 / n) * n; const a = new Uint32Array(1);
+    do { c.getRandomValues(a); } while (a[0] >= lim);
+    return a[0] % n;
+  }
+  function shuffle(arr, rand) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function cardSort(a, b) { return SUITS.indexOf(suitOf(a)) - SUITS.indexOf(suitOf(b)) || rankOf(a) - rankOf(b); }
+  const lowestByOrder = cards => cards.slice().sort((a, b) => rankOf(a) - rankOf(b) || SUITS.indexOf(suitOf(a)) - SUITS.indexOf(suitOf(b)))[0];
+
+  function log(st, msg) { st.log.push(msg); if (st.log.length > 12) st.log.shift(); }
+  function ev(st, e, now) { st.events = st.events || []; e.t = now; e.h = st.handNo; e.id = (st.evSeq = (st.evSeq || 0) + 1); st.events.push(e); if (st.events.length > 40) st.events.shift(); }
+  const nm = (st, uid) => st.names[uid] || 'Player';
+  const SN = s => '[[' + s + ']]';
+  const seatUid = (st, i) => st.seats[i];
+  const idxOf = (st, uid) => st.seats.indexOf(uid);
+
+  function draw(contenders, rand, wantHigh) {
+    const rounds = []; let c = contenders.slice();
+    for (let guard = 0; guard < 20; guard++) {
+      const deck = shuffle(fullDeck(), rand); const r = {};
+      c.forEach((u, i) => r[u] = deck[i]);
+      rounds.push(r);
+      const vals = c.map(u => rankOf(r[u]));
+      const best = wantHigh ? Math.max(...vals) : Math.min(...vals);
+      const tied = c.filter(u => rankOf(r[u]) === best);
+      if (tied.length === 1) return { rounds, winner: tied[0] };
+      c = tied;
+    }
+    return { rounds, winner: c[0] };
+  }
+
+  function createMatch(o) {
+    const rand = o.rand || secureRand; const now = o.now;
+    const st = { rv: '0.1', v: 1, matchId: o.matchId || ('m' + now.toString(36)), mode: o.mode || 'single', tz: o.tz || 'UTC',
+      n: o.players.length, lobby: o.players.map(p => p.uid), names: {}, bots: {}, losses: {}, seats: null,
+      phase: 'SEATING_DRAW', deadline: now + T.seatDraw, log: [], history: [], autoCount: {}, handNo: 0,
+      startedAt: now, award: null, lastResult: null, pauseFor: null, ready: {} };
+    st.targets = Array.isArray(o.targets) ? o.targets.filter(u => o.players.some(p => p.uid === u)) : []; st.hintsOn = !!o.hints && st.targets.length > 0;
+    st.levels = {}; st.titleOf = {}; st.target = [2, 3, 5].includes(o.target) ? o.target : 5;
+    st.titles = Array.isArray(o.titles) && o.titles.length === 5 && o.titles.every(Array.isArray) ? o.titles.map(l => l.map(t => String(t || '').trim().slice(0, 40)).filter(Boolean)) : null;
+    st.style = {};
+    o.players.forEach(p => { st.names[p.uid] = p.name; st.bots[p.uid] = !!p.bot; st.losses[p.uid] = 0; if (p.bot) st.levels[p.uid] = p.level || 'medium'; });
+    const d = draw(st.lobby, rand, true);
+    st.draw = { kind: 'seat', rounds: d.rounds, winner: d.winner };
+    log(st, nm(st, d.winner) + ' drew highest and arranges the seating.');
+    st._rand = null; // rand is supplied per call
+    return st;
+  }
+
+  function startHand(st, now, rand) {
+    st.handNo++;
+    if (st.handNo > 1) st.anchor = (st.anchor + 1) % st.n;
+    const n = st.n, base = Math.floor(52 / n), rem = 52 - base * n;
+    const q = Array(n).fill(base);
+    if (st.mode === 'single') q[st.anchor] += rem; else for (let i = 0; i < rem; i++) q[(st.anchor + i) % n]++;
+    st.quotas = q; st.dealt = Array(n).fill(0);
+    st.deck = shuffle(fullDeck(), rand);
+    st.hands = {}; st.seats.forEach(u => st.hands[u] = []);
+    st.table = []; st.discard = []; st.transfer = null; st.led = null; st.trick = null;
+    st.finished = {}; st.ready = {}; st.pauseFor = null; st.seen = {}; st.voids = {}; st.known = {}; st.ledBy = {}; st.cutWith = {}; st.shedSeen = {}; st.playedBy = {}; st.highBy = {}; st.trickNo = 0; st.finalView = null;
+    st.dealTo = (st.dealer + 1) % n;
+    st.phase = 'DEALING'; st.deadline = now + T.batch; st.dealTotal = now + T.dealTotal;
+    log(st, nm(st, st.seats[st.dealer]) + ' is dealing hand ' + st.handNo + '.');
+  }
+
+  function nextRecipient(st, from) {
+    for (let k = 0; k < st.n; k++) { const i = (from + k) % st.n; if (st.dealt[i] < st.quotas[i]) return i; }
+    return -1;
+  }
+  function giveCards(st, count) {
+    const r = st.dealTo; const u = st.seats[r];
+    for (let k = 0; k < count; k++) st.hands[u].push(st.deck.shift());
+    st.hands[u].sort(cardSort);
+    st.dealt[r] += count;
+    st.dealTo = nextRecipient(st, r + 1);
+  }
+  function finishDeal(st, now) {
+    st.seats.forEach(u => st.hands[u].sort(cardSort));
+    const holder = st.seats.find(u => st.hands[u].includes('S_A'));
+    st.firstTrick = true;
+    newTrick(st, idxOf(st, holder), now);
+    log(st, nm(st, holder) + ' holds the Ace of Spades and opens.');
+  }
+  function activeIdx(st) { return st.seats.map((u, i) => i).filter(i => st.hands[st.seats[i]].length > 0); }
+  function newTrick(st, leader, now) {
+    // D09 (proposed): a position repeating three times in one hand is a stalemate
+    const key = leader + '|' + st.seats.map(u => st.hands[u].join(',')).join('/');
+    st.seen = st.seen || {}; st.seen[key] = (st.seen[key] || 0) + 1;
+    if (st.seen[key] >= 3) {
+      const act = activeIdx(st); let d = leader;
+      act.forEach(i => { if (st.hands[st.seats[i]].length > st.hands[st.seats[d]].length) d = i; });
+      return endHand(st, d, 'The same position repeated three times, so the hand ended as a stalemate. ' + nm(st, st.seats[d]) + ' held the most cards' + (d === leader ? ' (or was due to lead on a tie)' : '') + '.', now);
+    }
+    const order = []; st.trickNo = (st.trickNo || 0) + 1;
+    for (let k = 0; k < st.n; k++) { const i = (leader + k) % st.n; if (st.hands[st.seats[i]].length > 0) order.push(i); }
+    st.trick = { leader, order, pos: 0 }; st.table = []; st.led = null;
+    st.phase = 'TURN'; st.deadline = now + T.turn;
+  }
+  const actorUid = st => (st.phase === 'TURN' ? st.seats[st.trick.order[st.trick.pos]] : null);
+
+  function highestLedOwner(st) {
+    let best = null;
+    for (const t of st.table) if (suitOf(t.c) === st.led && (!best || rankOf(t.c) > rankOf(best.c))) best = t;
+    return best.s;
+  }
+
+  function resolve(st, preferred, finalHigh, now) {
+    st.seats.forEach((u, i) => { if (st.hands[u].length === 0 && !st.finished[i]) { st.finished[i] = true; ev(st, { k: 'out', u }, now); } });
+    const act = activeIdx(st);
+    if (act.length <= 1) {
+      const donkey = act.length === 1 ? act[0] : finalHigh;
+      const reason = act.length === 1 ? nm(st, st.seats[donkey]) + ' was the last player holding cards.'
+        : 'Everyone emptied their hand on the final trick, so ' + nm(st, st.seats[donkey]) + ', who played its highest card, takes the loss.';
+      return endHand(st, donkey, reason, now);
+    }
+    let leader = preferred;
+    if (st.hands[st.seats[leader]].length === 0) for (let k = 1; k <= st.n; k++) { const i = (preferred + k) % st.n; if (st.hands[st.seats[i]].length) { leader = i; break; } }
+    if (st.pauseFor) { st.phase = 'PAUSED'; st.pausedLeader = leader; st.deadline = now + T.pause; st.table = []; st.led = null; st.trick = null;
+      log(st, 'Paused: waiting for ' + nm(st, st.pauseFor) + ' to come back.'); return; }
+    newTrick(st, leader, now);
+  }
+
+  function endHand(st, donkeyIdx, reason, now) {
+    const u = st.seats[donkeyIdx];
+    st.losses[u]++;
+    st.lastResult = { handNo: st.handNo, uid: u, reason };
+    st.history.push({ handNo: st.handNo, uid: u });
+    if (st.titles) { const lvl = st.losses[u] >= st.target ? 5 : Math.min(st.losses[u], 4); st.lastResult.level = lvl;
+      const pool = shuffle((st.titles[lvl - 1] || []).filter(t => t !== st.titleOf[u]), secureRand);
+      if (pool.length) { st.titleOf[u] = pool[0]; st.levelOf = st.levelOf || {}; st.levelOf[u] = lvl; st.lastResult.title = pool[0]; st.lastResult.titleOptions = pool.slice(1, 4); } }
+    ev(st, { k: 'donkey', u, title: st.lastResult.title || null, losses: st.losses[u] }, now);
+    st.trick = null; st.table = []; st.led = null; st.dealer = donkeyIdx;
+    log(st, nm(st, u) + ' is the Donkey of hand ' + st.handNo + '.');
+    st.phase = 'HAND_END'; st.deadline = now + T.handEnd; st.endNext = st.losses[u] >= st.target ? 'MATCH_RESULT' : 'HAND_RESULT';
+    if (st.losses[u] >= st.target) {
+      let date; try { date = new Intl.DateTimeFormat('en-IN', { timeZone: st.tz, day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(now)); } catch (e) { date = new Date(now).toDateString(); }
+      st.award = { uid: u, date, at: now, tz: st.tz };
+      log(st, nm(st, u) + ' is Donkey of the Day.');
+    }
+  }
+
+  function legalFor(st, uid) {
+    if (st.phase !== 'TURN' || actorUid(st) !== uid) return { play: [], cut: false };
+    const h = st.hands[uid];
+    if (!st.table.length) return { play: st.firstTrick ? ['S_A'] : h.slice(), cut: false };
+    const f = h.filter(c => suitOf(c) === st.led);
+    return f.length ? { play: f, cut: false } : { play: [], cut: true };
+  }
+
+  function playCard(st, uid, card, now) {
+    const h = st.hands[uid];
+    if (!h.includes(card)) return 'CARD_NOT_OWNED';
+    if (!st.table.length) {
+      if (st.firstTrick && card !== 'S_A') return 'MUST_LEAD_ACE';
+      st.led = suitOf(card);
+      if (!st.firstTrick) { const L = st.ledBy[uid] = st.ledBy[uid] || {}; const sty = st.style[uid] = st.style[uid] || { led: 0, shed: 0 };
+        if (!L[st.led]) sty.led++; L[st.led] = (L[st.led] || 0) + 1; }
+    } else if (suitOf(card) !== st.led) {
+      return h.some(c => suitOf(c) === st.led) ? 'MUST_FOLLOW_SUIT' : 'MUST_CUT';
+    }
+    { const lead = !st.table.length, prevHi = lead ? 0 : Math.max(...st.table.map(t => rankOf(t.c)));
+      (st.playedBy[uid] = st.playedBy[uid] || []).push({ c: card, k: lead ? 'lead' : 'follow', t: st.trickNo });
+      // a high card that it did not need to play: either they kept small cards, or they are about to run out of the suit
+      if (!st.firstTrick && rankOf(card) >= 11 && (lead || rankOf(card) > prevHi)) { const hb = st.highBy[uid] = st.highBy[uid] || {}; const x = suitOf(card);
+        if (!hb[x]) { const sty = st.style[uid] = st.style[uid] || { led: 0, shed: 0 }; sty.hi = (sty.hi || 0) + 1; } hb[x] = (hb[x] || 0) + 1; } }
+    h.splice(h.indexOf(card), 1); forget(st, uid, [card]);
+    st.table.push({ s: idxOf(st, uid), c: card });
+    st.trick.pos++;
+    if (st.trick.pos >= st.trick.order.length) {
+      // keep the completed trick on the table for a moment so everyone sees the last card
+      st.phase = 'TRICK_END'; st.deadline = now + T.trickEnd;
+    } else st.deadline = now + T.turn;
+    return null;
+  }
+
+  function finishTrick(st, now) {
+    {
+      const w = highestLedOwner(st);
+      st.discard.push(...st.table.map(t => t.c));
+      log(st, 'Everyone followed ' + SN(st.led) + '. ' + nm(st, st.seats[w]) + ' played highest.');
+      st.firstTrick = false;
+      st.lastTrick = st.table.slice(); st.finalView = { kind: 'clean', cards: st.table.slice(), led: st.led };
+      ev(st, { k: 'clean', u: st.seats[w], c: st.table.find(t => t.s === w).c, suit: st.led }, now);
+      resolve(st, w, w, now);
+    }
+  }
+
+  function cutCards(st, uid, cards, now) {
+    const h = st.hands[uid];
+    if (!st.table.length) return 'CANNOT_CUT_WHEN_LEADING';
+    if (h.some(c => suitOf(c) === st.led)) return 'MUST_FOLLOW_SUIT';
+    if (!Array.isArray(cards) || !cards.length) return 'EMPTY_CUT';
+    if (new Set(cards).size !== cards.length) return 'DUPLICATE_CARDS';
+    if (!cards.every(c => h.includes(c))) return 'CARD_NOT_OWNED';
+    if (new Set(cards.map(suitOf)).size !== 1) return 'MIXED_CUT_SUITS';
+    const giver = idxOf(st, uid), rec = highestLedOwner(st);
+    st.voids[uid] = Object.assign({}, st.voids[uid], { [st.led]: true });
+    { const sty = st.style[uid] = st.style[uid] || { led: 0, shed: 0 }; const k = uid + st.led;
+      if (st.ledBy[uid] && st.ledBy[uid][st.led] && !st.shedSeen[k]) { sty.shed++; st.shedSeen[k] = 1; }
+      if (st.highBy[uid] && st.highBy[uid][st.led] && !st.shedSeen['h' + k]) { sty.hiCut = (sty.hiCut || 0) + 1; st.shedSeen['h' + k] = 1; }
+      const cw = st.cutWith[uid] = st.cutWith[uid] || {}; cw[suitOf(cards[0])] = (cw[suitOf(cards[0])] || 0) + 1; }
+    cards.forEach(c => { h.splice(h.indexOf(c), 1); (st.playedBy[uid] = st.playedBy[uid] || []).push({ c, k: 'cut', t: st.trickNo }); }); forget(st, uid, cards);
+    ev(st, { k: 'cut', u: uid, to: st.seats[rec], n: cards.length, total: cards.length + st.table.length, suit: suitOf(cards[0]), led: st.led, cards: cards.slice() }, now);
+    st.transfer = { giver, recipient: rec, table: st.table.slice(), cut: cards.slice().sort(cardSort), endsAt: now + T.reveal };
+    st.table = []; st.firstTrick = false;
+    st.phase = 'CUT_REVEAL'; st.deadline = now + T.reveal;
+    log(st, nm(st, uid) + ' cut ' + cards.length + ' ' + SN(suitOf(cards[0])) + '. ' + nm(st, st.seats[rec]) + ' picks up ' + (cards.length + st.transfer.table.length) + ' cards.');
+    return null;
+  }
+
+  function forget(st, uid, cards) { if (st.known && st.known[uid]) st.known[uid] = st.known[uid].filter(c => !cards.includes(c)); }
+  function commitTransfer(st, now) {
+    const t = st.transfer; const ru = st.seats[t.recipient];
+    st.finalView = { kind: 'cut', cards: t.table.slice(), cut: t.cut.slice(), giver: t.giver, recipient: t.recipient };
+    const got = [...t.table.map(x => x.c), ...t.cut];
+    st.hands[ru].push(...got);
+    st.hands[ru].sort(cardSort);
+    st.known[ru] = (st.known[ru] || []).concat(got);
+    if (st.voids[ru]) got.forEach(c => { delete st.voids[ru][suitOf(c)]; });
+    got.forEach(c => { if (st.highBy[ru]) delete st.highBy[ru][suitOf(c)]; if (st.ledBy[ru]) delete st.ledBy[ru][suitOf(c)]; if (st.cutWith[ru]) delete st.cutWith[ru][suitOf(c)]; });
+    st.transfer = null;
+    resolve(st, t.giver, null, now);
+  }
+
+  function autoAction(st, now) {
+    const uid = actorUid(st), h = st.hands[uid];
+    let res;
+    if (!st.table.length) res = playCard(st, uid, st.firstTrick ? 'S_A' : lowestByOrder(h), now);
+    else {
+      const f = h.filter(c => suitOf(c) === st.led);
+      res = f.length ? playCard(st, uid, lowestByOrder(f), now) : cutCards(st, uid, [lowestByOrder(h)], now);
+    }
+    return uid;
+  }
+
+  function startMatchPlay(st, now, rand) {
+    const d = draw(st.seats, rand, false);
+    st.draw = { kind: 'dealer', rounds: d.rounds, winner: d.winner };
+    st.phase = 'DEALER_DRAW'; st.deadline = now + T.dealerDraw;
+    st.dealer = idxOf(st, d.winner); st.anchor = (st.dealer + 1) % st.n;
+    log(st, nm(st, d.winner) + ' drew lowest and deals first.');
+  }
+
+  /* apply a player action; returns null or a rejection code */
+  function apply(st, uid, a, now, rand) {
+    rand = rand || secureRand;
+    if (!st.names[uid]) return 'NOT_IN_MATCH';
+    const ph = st.phase;
+    switch (a.type) {
+      case 'SET_SEAT_ORDER': {
+        if (ph !== 'SEATING_ORDER') return 'WRONG_PHASE';
+        if (uid !== st.draw.winner) return 'NOT_YOUR_TURN';
+        const o = a.payload && a.payload.order;
+        if (!Array.isArray(o) || o.length !== st.n || new Set(o).size !== st.n || !o.every(u => st.names[u])) return 'INVALID_ORDER';
+        st.seats = o.slice(); log(st, 'Seating confirmed.');
+        startMatchPlay(st, now, rand); break;
+      }
+      case 'DEAL_BATCH': {
+        if (ph !== 'DEALING') return 'WRONG_PHASE';
+        if (uid !== st.seats[st.dealer]) return 'NOT_YOUR_TURN';
+        const c = a.payload && a.payload.count, r = st.dealTo;
+        if (!Number.isInteger(c) || c < 1 || c > st.quotas[r] - st.dealt[r]) return 'INVALID_BATCH';
+        giveCards(st, c);
+        if (st.dealTo < 0) finishDeal(st, now); else st.deadline = Math.min(now + T.batch, st.dealTotal);
+        break;
+      }
+      case 'PLAY_CARD': case 'CUT_CARDS': {
+        if (ph !== 'TURN') return 'WRONG_PHASE';
+        if (actorUid(st) !== uid) return 'NOT_YOUR_TURN';
+        const err = a.type === 'PLAY_CARD' ? playCard(st, uid, a.payload && a.payload.card, now) : cutCards(st, uid, a.payload && a.payload.cards, now);
+        if (err) return err;
+        st.autoCount[uid] = 0; break;
+      }
+      case 'READY_NEXT_HAND': {
+        if (ph !== 'HAND_RESULT') return 'WRONG_PHASE';
+        st.ready[uid] = true;
+        if (st.seats.every(u => st.bots[u] || st.ready[u])) startHand(st, now, rand);
+        break;
+      }
+      case 'CROWN': {
+        const r = st.lastResult; const name = String((a.payload && a.payload.name) || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+        if (!r || !st.titles || !['HAND_END', 'HAND_RESULT', 'MATCH_RESULT'].includes(ph)) return 'WRONG_PHASE';
+        if (uid === r.uid) return 'NOT_YOUR_TURN';
+        if (!name) return 'EMPTY_NAME';
+        st.titleOf[r.uid] = name; r.title = name; r.crownedBy = uid; ev(st, { k: 'crown', u: uid, to: r.uid, title: name }, now); log(st, nm(st, uid) + ' crowned ' + nm(st, r.uid) + ' as ' + name + '.'); break;
+      }
+      case 'RESUME': {
+        if (ph !== 'PAUSED') return 'WRONG_PHASE';
+        if (uid !== st.pauseFor) return 'NOT_YOUR_TURN';
+        st.autoCount[uid] = 0; st.pauseFor = null; log(st, nm(st, uid) + ' is back.');
+        newTrick(st, st.pausedLeader, now); break;
+      }
+      default: return 'UNKNOWN_ACTION';
+    }
+    st.v++; return null;
+  }
+
+  /* advance deadlines; returns true if state changed */
+  function tick(st, now, rand) {
+    rand = rand || secureRand;
+    if (st.deadline == null || now < st.deadline) {
+      if (!(st.phase === 'DEALING' && now >= st.dealTotal)) return false;
+    }
+    switch (st.phase) {
+      case 'SEATING_DRAW': st.phase = 'SEATING_ORDER'; st.deadline = now + T.seatOrder;
+        if (st.bots[st.draw.winner]) { st.seats = st.lobby.slice(); startMatchPlay(st, now, rand); } break;
+      case 'SEATING_ORDER': st.seats = st.lobby.slice(); log(st, 'Seating time ran out; join order kept.'); startMatchPlay(st, now, rand); break;
+      case 'DEALER_DRAW': st.handNo = 0; startHand(st, now, rand); break;
+      case 'DEALING': while (st.dealTo >= 0) giveCards(st, 1); log(st, 'Dealing time ran out; the rest was dealt one card at a time.'); finishDeal(st, now); break;
+      case 'TURN': { const u = autoAction(st, now); ev(st, { k: 'auto', u }, now); if (!st.bots[u]) { st.autoCount[u] = (st.autoCount[u] || 0) + 1; log(st, nm(st, u) + "’s move was made automatically.");
+          if (st.autoCount[u] >= 2 && !st.pauseFor) st.pauseFor = u; } break; }
+      case 'CUT_REVEAL': commitTransfer(st, now); break;
+      case 'TRICK_END': finishTrick(st, now); break;
+      case 'HAND_END': st.phase = st.endNext; st.deadline = st.phase === 'HAND_RESULT' ? now + T.ready : null; st.ready = {}; break;
+      case 'HAND_RESULT': startHand(st, now, rand); break;
+      case 'PAUSED': st.phase = 'INCOMPLETE'; st.deadline = null; st.incompleteReason = nm(st, st.pauseFor) + ' did not return.'; break;
+      default: return false;
+    }
+    st.v++; return true;
+  }
+
+  /* Probability that each opponent holds NO cards of each suit, from one player's point of view,
+     using only public information plus a pattern adjustment: players tend to lead and cut the
+     suits they hold few of, to run out of them and earn the right to cut. */
+  let HIGH_W = 1.2;
+  /* how much a player's high-card plays have actually come before a cut in that suit, learned over the match */
+  function highWeight(pv, u) { const s = (pv.style || {})[u] || {}; return HIGH_W * ((s.hiCut || 0) + 0.3) / ((s.hi || 0) + 2); }
+  function lambdaFor(pv, u) { const s = (pv.style || {})[u] || { led: 0, shed: 0 }; return 1.4 + 1.6 * (s.shed + 1) / (s.led + 2); }
+  function estimate(pv, me, myHand) {
+    const seen = new Set([...myHand, ...(pv.discard || []), ...(pv.table || []).map(t => t.c)]);
+    if (pv.transfer) [...pv.transfer.table.map(x => x.c), ...pv.transfer.cut].forEach(c => seen.add(c));
+    const known = pv.known || {}, voids = pv.voids || {};
+    Object.entries(known).forEach(([u, cs]) => { if (u !== me) cs.forEach(c => seen.add(c)); });
+    const unknown = fullDeck().filter(c => !seen.has(c));
+    const rows = (pv.seats || []).filter(u => u !== me && pv.counts[u] > 0).map(u => {
+      const kn = known[u] || [], slots = Math.max(0, pv.counts[u] - kn.length);
+      const pool = unknown.filter(c => !(voids[u] && voids[u][suitOf(c)])), N = pool.length;
+      const base = {}, adj = {}, why = {}, lam = lambdaFor(pv, u);
+      SUITS.forEach(x => {
+        if (voids[u] && voids[u][x]) { base[x] = adj[x] = 1; why[x] = 'shown'; return; }
+        if (kn.some(c => suitOf(c) === x)) { base[x] = adj[x] = 0; why[x] = 'holds'; return; }
+        const k = pool.filter(c => suitOf(c) === x).length; let p = 1;
+        if (slots > N - k) p = 0; else for (let i = 0; i < slots; i++) p *= (N - k - i) / (N - i);
+        base[x] = p;
+        const ev = Math.min(3, ((pv.ledBy || {})[u] || {})[x] || 0) + Math.min(2, ((pv.cutWith || {})[u] || {})[x] || 0) + highWeight(pv, u) * Math.min(2, ((pv.highBy || {})[u] || {})[x] || 0);
+        if (ev && p > 0 && p < 1) { const o = p / (1 - p) * Math.pow(lam, ev); adj[x] = Math.min(0.97, o / (1 + o)); why[x] = 'pattern'; } else adj[x] = p;
+      });
+      return { u, count: pv.counts[u], known: kn, base, pv: adj, why, lam, hw: highWeight(pv, u), shown: voids[u] || {} };
+    });
+    const otherCount = {}, top = {};
+    SUITS.forEach(x => { const cs = [...unknown, ...rows.flatMap(r => r.known)].filter(c => suitOf(c) === x); otherCount[x] = cs.length; top[x] = cs.length ? Math.max(...cs.map(rankOf)) : 0; });
+    return { rows, otherCount, top };
+  }
+
+  /* conspiracy: pro bots that are not targets work together against the targets.
+     They share knowledge of the targets' hands (that is the conspiracy). */
+  const isTarget = (st, u) => (st.targets || []).includes(u);
+  function conspire(st, uid) {
+    if (!st.targets || !st.targets.length || isTarget(st, uid)) return null;
+    const h = st.hands[uid], led = st.led, me = idxOf(st, uid);
+    const by = {}; h.forEach(c => (by[suitOf(c)] = by[suitOf(c)] || []).push(c));
+    Object.values(by).forEach(a => a.sort((x, y) => rankOf(x) - rankOf(y)));
+    const tg = st.targets.filter(u => st.hands[u].length > 0);
+    if (!tg.length) return null;
+    if (st.table.length) {
+      const hiI = highestLedOwner(st), hiU = st.seats[hiI];
+      const f = by[led] || [];
+      if (!f.length) {
+        // void: dump the heaviest suit on a target, spare everyone else with one low card
+        const ks = Object.keys(by);
+        if (isTarget(st, hiU)) { const w = s => by[s].reduce((t, c) => t + Math.pow(rankOf(c), 1.5), 0); const s = ks.sort((a, b) => w(b) - w(a))[0]; return { type: 'CUT_CARDS', payload: { cards: by[s] } }; }
+        const low = ks.map(s => by[s][0]).sort((a, b) => rankOf(a) - rankOf(b))[0]; return { type: 'CUT_CARDS', payload: { cards: [low] } };
+      }
+      const hi = rankOf(st.table.find(t => t.s === hiI).c);
+      const rest = st.trick.order.slice(st.trick.pos + 1).map(i => st.seats[i]);
+      const under = f.filter(c => rankOf(c) < hi);
+      const someoneCuts = rest.some(u => !isTarget(st, u) && !st.hands[u].some(c => suitOf(c) === led));
+      // a target is highest and a conspirator after us can cut: stay under
+      if (isTarget(st, hiU) && someoneCuts) return { type: 'PLAY_CARD', payload: { card: under.length ? under[under.length - 1] : f[0] } };
+      // a target still to play holds a higher card than ours: play low so the target ends up highest
+      const tAfter = rest.filter(u => isTarget(st, u));
+      if (tAfter.some(u => st.hands[u].some(c => suitOf(c) === led && rankOf(c) > rankOf(f[0])))) return { type: 'PLAY_CARD', payload: { card: f[0] } };
+      return null;
+    }
+    if (st.firstTrick) return null;
+    // leading: choose a suit where a target holds the top card and a conspirator later in the order is void
+    let best = null;
+    for (const s of Object.keys(by)) {
+      let sc = 0;
+      for (const t of tg) {
+        const ts = st.hands[t].filter(c => suitOf(c) === s); if (!ts.length) continue;
+        const tTop = Math.max(...ts.map(rankOf));
+        const othersTop = st.seats.filter(u => u !== t && st.hands[u].length).map(u => Math.max(0, ...st.hands[u].filter(c => suitOf(c) === s).map(rankOf)));
+        if (tTop > Math.max(0, ...othersTop)) sc += 3;
+        const order = []; for (let k = 1; k < st.n; k++) { const i = (me + k) % st.n; if (st.hands[st.seats[i]].length) order.push(st.seats[i]); }
+        const ti = order.indexOf(t);
+        if (order.slice(ti + 1).some(u => !isTarget(st, u) && !st.hands[u].some(c => suitOf(c) === s))) sc += 2;
+      }
+      if (sc && (!best || sc > best.sc)) best = { s, sc };
+    }
+    return best ? { type: 'PLAY_CARD', payload: { card: by[best.s][0] } } : null;
+  }
+
+  /* private whisper for human allies (non-targets) when hints are on */
+  function conspiracyHint(st, uid) {
+    if (!st.hintsOn || isTarget(st, uid) || st.bots[uid] || st.phase !== 'TURN' || !st.hands) return null;
+    const tg = st.targets.filter(u => st.hands[u].length > 0); if (!tg.length) return null;
+    const bots = st.seats.filter(u => st.bots[u] && !isTarget(st, u)); const who = bots.length ? st.names[bots[0]] : 'The bots';
+    const h = st.hands[uid], T = tg.map(u => st.names[u]).join(' and ');
+    if (actorUid(st) === uid && st.table.length) {
+      const hiU = st.seats[highestLedOwner(st)], f = h.filter(c => suitOf(c) === st.led);
+      if (!f.length && isTarget(st, hiU)) return who + ' whispers: ' + st.names[hiU] + ' is highest. Cut big, dump your heaviest suit on them.';
+      if (!f.length) return who + ' whispers: the pickup goes to a friend. Cut one low card to go easy on them.';
+      if (isTarget(st, hiU)) return who + ' whispers: ' + st.names[hiU] + ' is highest. Play under them and let someone cut.';
+      const tAfter = st.trick.order.slice(st.trick.pos + 1).map(i => st.seats[i]).filter(u => isTarget(st, u));
+      for (const t of tAfter) { const top = st.hands[t].filter(c => suitOf(c) === st.led).sort((a, b) => rankOf(b) - rankOf(a))[0];
+        if (top) return who + ' whispers: ' + st.names[t] + ' still holds {{' + top + '}}. Play low and they end up highest.'; }
+      return null;
+    }
+    if (actorUid(st) === uid && !st.table.length && !st.firstTrick) {
+      for (const t of tg) { const by = {}; st.hands[t].forEach(c => (by[suitOf(c)] = by[suitOf(c)] || []).push(c));
+        for (const s of Object.keys(by)) { if (!h.some(c => suitOf(c) === s)) continue;
+          const tTop = Math.max(...by[s].map(rankOf)); const mine = Math.max(...h.filter(c => suitOf(c) === s).map(rankOf));
+          if (tTop > mine) return who + ' whispers: ' + st.names[t] + ' holds the higher ' + SN(s) + '. Lead your lowest ' + SN(s) + '.'; } }
+    }
+    return null;
+  }
+
+  /* bot policy: easy | medium | hard | pro */
+  function botAction(st, uid, rand, level) {
+    rand = rand || secureRand; level = level || (st.levels && st.levels[uid]) || 'medium';
+    const ph = st.phase;
+    if (ph === 'DEALING' && st.seats[st.dealer] === uid) { const r = st.dealTo; const left = st.quotas[r] - st.dealt[r]; return { type: 'DEAL_BATCH', payload: { count: 1 + rand(Math.min(left, 5)) } }; }
+    if (ph !== 'TURN' || actorUid(st) !== uid) return null;
+    if (level === 'pro') { const c = conspire(st, uid); if (c) return c; }
+    const h = st.hands[uid], me = idxOf(st, uid);
+    const by = {}; h.forEach(c => (by[suitOf(c)] = by[suitOf(c)] || []).push(c));
+    Object.values(by).forEach(a => a.sort((x, y) => rankOf(x) - rankOf(y)));
+    const pick = a => a[rand(a.length)];
+    const play = c => ({ type: 'PLAY_CARD', payload: { card: c } });
+    const others = st.seats.map((u, i) => i).filter(i => i !== me && st.hands[st.seats[i]].length > 0);
+    let est = null; const E = () => est || (est = estimate(publicView(st), uid, h));
+    const pVoid = (u, s) => { const r = E().rows.find(x => x.u === u); return r ? r.pv[s] : 0; };
+    const voidCount = s => level === 'pro' ? others.reduce((t, i) => t + pVoid(st.seats[i], s), 0) : others.filter(i => st.voids[st.seats[i]] && st.voids[st.seats[i]][s]).length;
+    const unseen = s => 13 - st.discard.filter(c => suitOf(c) === s).length - (by[s] || []).length;
+    /* leading */
+    if (!st.table.length) {
+      if (st.firstTrick) return play('S_A');
+      if (level === 'easy') return play(pick(h));
+      const ks = Object.keys(by);
+      if (level === 'medium') { const s = rand(3) ? ks.sort((a, b) => by[b].length - by[a].length)[0] : pick(ks); return play(by[s][0]); }
+      // hard / pro: lead a suit no opponent has shown void in, where others still hold cards
+      const score = s => voidCount(s) * 10 - (level === 'pro' ? Math.min(unseen(s), others.length) : 0) + (level === 'pro' ? rankOf(by[s][0]) / 20 : 0);
+      const safe = ks.slice().sort((a, b) => score(a) - score(b) || rankOf(by[a][0]) - rankOf(by[b][0]));
+      const s = rand(8) ? safe[0] : pick(ks);
+      return play(by[s][0]);
+    }
+    const led = st.led, f = by[led] || [];
+    /* following */
+    if (f.length) {
+      if (level === 'easy') return play(pick(f));
+      const hi = Math.max(...st.table.filter(t => suitOf(t.c) === led).map(t => rankOf(t.c)));
+      const under = f.filter(c => rankOf(c) < hi), over = f.filter(c => rankOf(c) > hi);
+      if (level === 'medium') return play(under.length ? under[under.length - 1] : f[f.length - 1]);
+      const rest = st.trick.order.slice(st.trick.pos + 1).map(i => st.seats[i]);
+      const cutRisk = rest.some(u => st.voids[u] && st.voids[u][led]) || (level === 'pro' && rest.some(u => pVoid(u, led) >= 0.5));
+      const last = rest.length === 0;
+      if (last || !cutRisk) {
+        // nobody can cut after us: winning the trick is safe, so shed the highest card
+        if (level === 'pro' || last) return play(f[f.length - 1]);
+        return play(under.length ? under[under.length - 1] : f[f.length - 1]);
+      }
+      // someone after us is void: stay under the current highest if we can
+      if (under.length) return play(under[under.length - 1]);
+      return play(over[0]);
+    }
+    /* cutting */
+    const ks = Object.keys(by);
+    if (level === 'easy') { const s = pick(ks); return { type: 'CUT_CARDS', payload: { cards: [pick(by[s])] } }; }
+    if (level === 'medium') {
+      const s = rand(4) ? ks.sort((a, b) => rankOf(by[b][by[b].length - 1]) - rankOf(by[a][by[a].length - 1]) || by[b].length - by[a].length)[0] : pick(ks);
+      return { type: 'CUT_CARDS', payload: { cards: rand(3) ? by[s] : by[s].slice(-1 - rand(by[s].length)) } };
+    }
+    const weight = s => by[s].reduce((t, c) => t + (level === 'pro' ? Math.pow(rankOf(c), 1.5) : rankOf(c)), 0);
+    const s = ks.sort((a, b) => weight(b) - weight(a))[0];
+    return { type: 'CUT_CARDS', payload: { cards: by[s] } };
+  }
+
+  function publicView(st) {
+    const p = { rv: st.rv, v: st.v, matchId: st.matchId, phase: st.phase, n: st.n, mode: st.mode, tz: st.tz,
+      lobby: st.lobby, seats: st.seats, names: st.names, bots: st.bots, losses: st.losses, deadline: st.deadline,
+      dealTotal: st.dealTotal || null,
+      log: st.log, history: st.history, handNo: st.handNo, award: st.award, lastResult: st.lastResult, draw: st.draw,
+      dealer: st.dealer ?? null, target: st.target || 5, levelOf: st.levelOf || {}, endNext: st.endNext || null, style: st.style || {}, levels: st.levels, titleOf: st.titleOf, titles: st.titles, events: st.events || [], targets: st.targets || [], hintsOn: !!st.hintsOn, anchor: st.anchor ?? null, pauseFor: st.pauseFor, ready: st.ready, incompleteReason: st.incompleteReason || null };
+    if (st.hands) {
+      p.counts = {}; st.seats.forEach((u, i) => p.counts[u] = st.phase === 'DEALING' ? st.dealt[i] : st.hands[u].length);
+      p.quotas = st.quotas; p.dealt = st.dealt; p.dealTo = st.dealTo;
+      p.table = st.table; p.led = st.led; p.trick = st.trick; p.firstTrick = !!st.firstTrick;
+      p.transfer = st.transfer; p.finished = st.finished; p.discardCount = st.discard.length; p.deckCount = st.deck.length;
+      p.trickNo = st.trickNo || 0; p.actor = actorUid(st); p.lastTrick = st.lastTrick || null; p.playedBy = st.playedBy || {}; p.highBy = st.highBy || {}; p.finalView = st.finalView || null; p.ledBy = st.ledBy || {}; p.cutWith = st.cutWith || {}; p.voids = st.voids || {}; p.known = st.known || {}; p.discard = st.discard.slice();
+    }
+    return p;
+  }
+  function privateHand(st, uid) { return (st.hands && st.hands[uid]) ? st.hands[uid].slice() : []; }
+
+  function checkConservation(st) {
+    if (!st.hands) return true;
+    const all = [...st.deck, ...st.discard, ...st.table.map(t => t.c), ...Object.values(st.hands).flat()];
+    if (st.transfer) all.push(...st.transfer.table.map(t => t.c), ...st.transfer.cut);
+    return all.length === 52 && new Set(all).size === 52;
+  }
+
+  const api = { setHighWeight: w => { HIGH_W = w; }, estimate, conspiracyHint, SUITS, RANKS, SUIT_NAME, T, suitOf, rankOf, fullDeck, cardSort, createMatch, apply, tick, botAction, publicView, privateHand, legalFor, actorUid, checkConservation, secureRand };
+  if (typeof module !== 'undefined') module.exports = api; else root.Engine = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+/* Original synthesized music catalog — generated in the browser, no external audio */
+const TRACKS = [
+  { id: 'chai', title: 'Chai Stall Shuffle', note: 'Bright and bouncy', bpm: 116, swing: .16,
+    chords: [[48,52,55],[53,57,60],[45,48,52],[43,47,50]], bass: '0..0..7.0..0.5.7', kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.',
+    lead: [0,2,4,7,4,2,0,null,4,7,9,7,4,null,2,null], wave: 'triangle', leadOct: 24 },
+  { id: 'monsoon', title: 'Monsoon Lounge', note: 'Slow and mellow', bpm: 82, swing: .1,
+    chords: [[57,60,64,67],[50,53,57,60],[55,59,62,65],[48,52,55,59]], bass: '0.....0...7.....', kick: 'x.......x.x.....', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.',
+    lead: [7,null,null,4,null,null,2,null,0,null,null,null,4,null,2,null], wave: 'sine', leadOct: 24 },
+  { id: 'bazaar', title: 'Midnight Bazaar', note: 'Moody, with a drone', bpm: 96, swing: 0,
+    chords: [[52,59,64],[53,57,60],[52,59,64],[50,53,57]], bass: '0.0.0..0.0..0.1.', kick: 'x..x..x...x..x..', snare: '....x.......x..x', hat: '.xx..xx..xx..xx.',
+    lead: [0,1,4,null,5,4,1,0,null,7,8,7,5,4,1,null], wave: 'sawtooth', leadOct: 12, drone: 40 },
+  { id: 'trot', title: 'Donkey Trot', note: 'Fast, a little silly', bpm: 132, swing: .2,
+    chords: [[43,47,50],[48,52,55],[50,54,57],[43,47,50]], bass: '0...7...0...7...', kick: 'x.x.x.x.x.x.x.x.', snare: '..x...x...x...x.', hat: 'xxxxxxxxxxxxxxxx',
+    lead: [12,null,7,null,12,null,7,null,14,12,11,null,7,null,null,null], wave: 'square', leadOct: 12 }
+];
+const Music = {
+  ctx: null, master: null, vol: .55, muted: false, track: null, t0: 0, step: 0, timer: null, noise: null, state: 'off',
+  get(id) { return TRACKS.find(t => t.id === id) || TRACKS[0]; },
+  enable() {
+    try {
+      if (!this.ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC();
+        this.master = this.ctx.createGain(); this.master.connect(this.ctx.destination);
+        const len = this.ctx.sampleRate; const b = this.ctx.createBuffer(1, len, len); const d = b.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; this.noise = b;
+      }
+      this.ctx.resume(); this.applyVol(); this.state = 'on'; return true;
+    } catch (e) { this.state = 'failed'; return false; }
+  },
+  applyVol() { if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * .5, this.ctx.currentTime, .05); if (this.el) this.el.volume = this.muted ? 0 : this.vol; },
+  el: null,
+  ensureEl() { if (!this.el) { this.el = new Audio(); this.el.loop = true; this.el.preload = 'auto'; this.el.onerror = () => { this.songError = true; if (window.App) App.render(); }; } return this.el; },
+  unlock() { try { const el = this.ensureEl(); if (!el.src) return; const p = el.play(); if (p) p.catch(() => {}); } catch (e) {} },
+  playSong(url, offsetMs) {
+    this.stopSynth(); const el = this.ensureEl(); this.songError = false;
+    if (el.dataset.u !== url) { el.src = url; el.dataset.u = url; }
+    const seek = () => { const d = el.duration; if (d && isFinite(d)) el.currentTime = ((offsetMs / 1000) % d + d) % d;
+      const p = el.play(); if (p) p.catch(() => { this.blocked = true; if (window.App) App.render(); }); };
+    if (el.readyState >= 1) seek(); else el.onloadedmetadata = seek;
+    this.applyVol();
+  },
+  /* play `id`, already `offsetMs` into the room's playback */
+  play(id, offsetMs) {
+    if (this.el) this.el.pause();
+    if (!this.ctx || this.ctx.state === 'closed') return;
+    const tr = this.get(id); const sd = 60 / tr.bpm / 4; const loop = 64 * sd;
+    const off = ((offsetMs / 1000) % loop + loop) % loop;
+    this.track = tr; this.t0 = this.ctx.currentTime - off; this.step = Math.ceil(off / sd);
+    clearInterval(this.timer); this.timer = setInterval(() => this.pump(), 25);
+  },
+  stopSynth() { clearInterval(this.timer); this.timer = null; this.track = null; },
+  stop() { this.stopSynth(); if (this.el) this.el.pause(); },
+  pump() {
+    const tr = this.track; if (!tr || !this.ctx) return;
+    const sd = 60 / tr.bpm / 4;
+    while (this.t0 + this.step * sd < this.ctx.currentTime + .12) {
+      let t = this.t0 + this.step * sd; if (this.step % 2) t += tr.swing * sd;
+      if (t >= this.ctx.currentTime - .01) this.sched(tr, this.step % 64, t, sd);
+      this.step++;
+    }
+  },
+  mtof(m) { return 440 * Math.pow(2, (m - 69) / 12); },
+  env(g, t, a, peak, dec) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec); },
+  osc(type, f, t, dur, peak, a = .005, filt) {
+    const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+    let node = o; if (filt) { const bq = c.createBiquadFilter(); bq.type = 'lowpass'; bq.frequency.value = filt; o.connect(bq); node = bq; }
+    node.connect(g); g.connect(this.master); this.env(g, t, a, peak, dur); o.start(t); o.stop(t + a + dur + .05);
+  },
+  hit(t, hp, peak, dur) {
+    const c = this.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = this.noise; f.type = hp ? 'highpass' : 'bandpass'; f.frequency.value = hp ? 7000 : 1800;
+    s.connect(f); f.connect(g); g.connect(this.master); this.env(g, t, .002, peak, dur); s.start(t); s.stop(t + dur + .05);
+  },
+  kick(t) { const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(42, t + .14);
+    o.connect(g); g.connect(this.master); this.env(g, t, .003, .9, .22); o.start(t); o.stop(t + .3); },
+  sched(tr, s, t, sd) {
+    const bar = Math.floor(s / 16), st = s % 16, ch = tr.chords[bar];
+    if (tr.kick[st] === 'x') this.kick(t);
+    if (tr.snare[st] === 'x') this.hit(t, false, .28, .12);
+    if (tr.hat[st] === 'x') this.hit(t, true, .07, .04);
+    const b = tr.bass[st]; if (b !== '.') this.osc('triangle', this.mtof(ch[0] - 12 + (+b)), t, sd * 1.6, .32, .005, 900);
+    if (st === 0 || st === 8) ch.forEach(m => this.osc('sine', this.mtof(m + 12), t, sd * 7, .06, .04));
+    if (tr.drone && st === 0) this.osc('sawtooth', this.mtof(tr.drone), t, sd * 15, .035, .2, 500);
+    const l = tr.lead[st]; if (l != null) this.osc(tr.wave, this.mtof(ch[0] + tr.leadOct + l), t, sd * 1.2, tr.wave === 'sine' ? .1 : .045, .005, 2600);
+  }
+};
+/* ---------- utilities ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const LS = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const BOT_NAMES = ['BotKunal', 'BotNinad', 'BotBajrangbali', 'BotMitesh', 'BotPritesh', 'BotAlldrin', 'BotAllen'];
+const LEVELS = [['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['pro', 'Pro']];
+const DEFAULT_LEVELS = [
+  ['Nanha Gadha', 'Pickup Pappu', 'Kachra Kid', 'Lallu Lottery'],
+  ['Captain Kachra', 'Patta Pehelwan', 'Fattu Fakir', 'Tingu Tycoon'],
+  ['Professor Pickup', 'Bhaukaal Babu', 'Dhakkan Don', 'Jhol Jhaal Jeeja'],
+  ['Lord Lafda', 'Bawandar Bhaiya', 'Gadha Shiromani', 'Sir Haar Singh'],
+  ['Maharaja Gadha-e-Azam', 'Emperor of Hee-Haw', 'Supreme Pickup Sultan']];
+const MUSIC_LOCK = 30000;
+const TEASES = ['Patte sambhal, gadhe ki aawaz aa rahi hai 🫏', 'Itne patte? Dukaan khol li kya? 📦', 'Cut ka darr saaf dikh raha hai 😂', 'Aaj toh title pakka! 👑🫏', 'Chal chal, jaldi khel ⏱️', 'Mast chaal thi... dusre ke liye 😆'];
+const QUIPS = {
+  cut: ['Le bhai, sambhal ke! 😄', 'Mere taraf se prasad 🙏', 'Gift hai, rakh lo', 'Pickup time! 📦', 'Yeh lo, aur lo!'],
+  pickup: ['Arre yaar, yeh kya hua 😩', 'Theek hai, dekh lunga', 'Itne saare patte? Kyun?'],
+  selfDonkey: ['Arre yaar, phir se main? 🫏', 'Agli baar dekh lena', 'Gadha nahi, strategist hoon main'],
+  tease: ['Badhai ho, naya title! 🎉', 'Hee-haw! 🫏', 'Kya khel gaye boss 😂', 'Title mubarak ho!']
+};
+const REASONS = { NOT_YOUR_TURN: "It isn’t your turn.", MUST_FOLLOW_SUIT: 'You still have the led suit, so you must follow it.', MUST_LEAD_ACE: 'The first trick opens with the Ace of Spades.',
+  MUST_CUT: "You have none of the led suit. Choose cards of one other suit to cut.", MIXED_CUT_SUITS: 'A cut must use cards of one suit only.', EMPTY_CUT: 'Select at least one card to cut.',
+  CARD_NOT_OWNED: "That card isn’t in your hand.", INVALID_BATCH: "That batch is larger than this player’s remaining cards.", WRONG_PHASE: 'That action no longer applies.', STALE_STATE: 'The table changed. Try again.',
+  NOT_HOST: 'Only the host can do that.', ROOM_FULL: 'Every seat is taken.', NOT_READY: 'Everyone needs to choose their music and tap Ready before starting.', CANNOT_CUT_WHEN_LEADING: 'You lead this trick, so play any single card.',
+  MUSIC_LOCKED: 'Each song plays for at least 30 seconds before anyone can change it.', LOSER_NO_MUSIC: 'You have the most losses, so the music is out of your hands until you make a comeback.',
+  WATCHERS_NO_MUSIC: 'Only seated players can change the music.', EMPTY_NAME: 'Type a name first.' };
+
+/* ---------- hand encryption: ECDH P-256 + AES-GCM ---------- */
+const Crypt = {
+  ok: !!(window.crypto && crypto.subtle),
+  cache: new Map(),
+  b64(buf) { let s = ''; new Uint8Array(buf).forEach(b => s += String.fromCharCode(b)); return btoa(s); },
+  unb64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); },
+  async gen() {
+    const kp = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']);
+    const pub = await crypto.subtle.exportKey('jwk', kp.publicKey), priv = await crypto.subtle.exportKey('jwk', kp.privateKey);
+    return { pub: { kty: pub.kty, crv: pub.crv, x: pub.x, y: pub.y }, priv };
+  },
+  async key(priv, pub) {
+    const id = priv.d + '|' + pub.x + pub.y; if (this.cache.has(id)) return this.cache.get(id);
+    const p = (async () => {
+      const pk = await crypto.subtle.importKey('jwk', { kty: priv.kty, crv: priv.crv, x: priv.x, y: priv.y, d: priv.d }, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey']);
+      const uk = await crypto.subtle.importKey('jwk', { kty: pub.kty, crv: pub.crv, x: pub.x, y: pub.y }, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+      return crypto.subtle.deriveKey({ name: 'ECDH', public: uk }, pk, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    })();
+    this.cache.set(id, p); return p;
+  },
+  async enc(k, obj) { const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(JSON.stringify(obj))); return { iv: this.b64(iv), ct: this.b64(ct) }; },
+  async dec(k, e) { const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: this.unb64(e.iv) }, k, this.unb64(e.ct)); return JSON.parse(new TextDecoder().decode(pt)); }
+};
+
+/* ---------- serialized writes to one document ---------- */
+function makeWriter(ref, onErr) {
+  let busy = false, next = null;
+  return async function write(data) {
+    next = data; if (busy) return; busy = true;
+    while (next) { const d = next; next = null;
+      try { await ref.set(d); } catch (e) { if (e && e.code === 'unavailable') { await sleep(300 + Math.random() * 500); if (!next) next = d; } else { onErr && onErr(e); } } }
+    busy = false;
+  };
+}
+
+/* ---------- Host: runs the authoritative game on the host’s device ---------- */
+class Host {
+  constructor(o) {
+    this.code = o.code; this.uid = o.uid; this.local = o.local; this.out = o.out; this.net = o.net || null;
+    this.lobby = { seatsWanted: o.local ? (o.seats || 4) : 4, mode: 'single', titlesOn: true, titles: DEFAULT_LEVELS.map(l => l.slice()), target: 5, targets: [], hints: true, botSpeed: 'real', watchers: {}, botLevel: o.botLevel || 'medium', tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', members: {}, kicked: {} };
+    this.lobby.members[o.uid] = { name: o.name, bot: false, ready: false, audio: false, joinedAt: Date.now() };
+    this.music = { kind: 'synth', track: 'chai', startedAt: Date.now() - MUSIC_LOCK, by: null }; this.proposals = {}; this.botTimer = null;
+    this.st = null; this.processed = {}; this.acks = {}; this.seq = 0; this.timers = []; this.keys = null; this.memberCache = {};
+    this.saveT = null; this.onQuip = o.onQuip || null; this.quipKey = '';
+  }
+  snapshot() { return { lobby: this.lobby, music: this.music, proposals: this.proposals, st: this.st, processed: this.processed, acks: this.acks, seq: this.seq, keys: this.keys }; }
+  restore(s) { if (s.lobby && !(Array.isArray(s.lobby.titles) && s.lobby.titles.length === 5 && s.lobby.titles.every(Array.isArray))) s.lobby.titles = DEFAULT_LEVELS.map(l => l.slice()); if (s.lobby && !s.lobby.target) s.lobby.target = 5; if (s.lobby) { s.lobby.watchers = s.lobby.watchers || {}; s.lobby.botSpeed = s.lobby.botSpeed || 'real'; } if (s.music && !s.music.kind) s.music.kind = 'synth'; if (s.lobby && !s.lobby.targets) Object.assign(s.lobby, { targets: [], hints: true });  Object.assign(this, { lobby: s.lobby, music: s.music, proposals: s.proposals || {}, st: s.st, processed: s.processed || {}, acks: s.acks || {}, seq: s.seq || 0, keys: s.keys || null }); }
+  botCount() { return Object.values(this.lobby.members).filter(m => m.bot).length; }
+  roster() { return Object.entries(this.lobby.members).sort((a, b) => a[1].joinedAt - b[1].joinedAt).map(([uid, m]) => ({ uid, ...m })); }
+  memberJoined(uid, d) {
+    this.memberCache[uid] = d;
+    const L = this.lobby, m = L.members[uid];
+    if (d.watch && !m) { if (d.left) { if (L.watchers[uid]) { delete L.watchers[uid]; return true; } return false; }
+      const had = !!L.watchers[uid]; L.watchers[uid] = { name: String(d.name || 'Guest').slice(0, 24), joinedAt: d.joinedAt || Date.now() }; return !had; }
+    if (!d.watch && L.watchers[uid] && !d.left) delete L.watchers[uid];
+    if (m) { if (d.pub) m.pub = d.pub; if (d.name && !this.st) m.name = d.name; if (d.left && !this.st && uid !== this.uid) { delete L.members[uid]; return true; } return !!d.pub; }
+    if (d.left || this.st && !['MATCH_RESULT', 'INCOMPLETE'].includes(this.st.phase)) return false;
+    if (L.kicked[uid] && !(d.joinedAt > L.kicked[uid])) return false;
+    if (Object.keys(L.members).length >= L.seatsWanted) return false;
+    L.members[uid] = { name: String(d.name || 'Player').slice(0, 24), bot: false, ready: false, audio: false, joinedAt: d.joinedAt || Date.now(), pub: d.pub || null };
+    return true;
+  }
+  rescanMembers() { Object.entries(this.memberCache).forEach(([u, d]) => { if (!this.lobby.members[u]) this.memberJoined(u, d); }); }
+  handle(uid, a) {
+    const L = this.lobby, now = Date.now(), isHost = uid === this.uid, inLobby = !this.st;
+    const m = L.members[uid];
+    switch (a.type) {
+      case 'SET_LOBBY': if (!m || !inLobby) return 'WRONG_PHASE';
+        if ('audio' in a.payload) m.audio = !!a.payload.audio;
+        if ('ready' in a.payload) m.ready = !!a.payload.ready && m.audio; break;
+      case 'PROPOSE_TRACK': case 'SELECT_TRACK': case 'SET_MUSIC': {
+        const why = this.musicBlock(uid, now); if (why) return why;
+        const p = a.payload || {};
+        if (p.song) { if (!/^[0-9a-f]{32}$|^local-/.test(String(p.song.id))) return 'WRONG_PHASE';
+          this.music = { kind: 'song', song: { id: String(p.song.id), title: String(p.song.title || 'Song').slice(0, 60) }, startedAt: now, by: uid }; }
+        else { if (!TRACKS.find(t => t.id === p.track)) return 'WRONG_PHASE'; this.music = { kind: 'synth', track: p.track, startedAt: now, by: uid }; }
+        break; }
+      case 'ADD_BOT': if (!isHost || !inLobby) return 'NOT_HOST'; if (Object.keys(L.members).length >= L.seatsWanted) return 'ROOM_FULL';
+        { const used = new Set(Object.values(L.members).map(x => x.name)); const free = BOT_NAMES.filter(n => !used.has(n)); const name = free.length ? free[Math.floor(Math.random() * free.length)] : 'Bot';
+          const level = LEVELS.some(l => l[0] === (a.payload && a.payload.level)) ? a.payload.level : (L.botLevel || 'medium');
+          L.members['bot-' + Math.random().toString(36).slice(2, 8)] = { name, bot: true, level, ready: true, audio: true, joinedAt: now }; } break;
+      case 'SET_BOT_LEVEL': if (!isHost || !inLobby) return 'NOT_HOST'; { const t = L.members[a.payload.uid]; if (!t || !t.bot || !LEVELS.some(l => l[0] === a.payload.level)) return 'WRONG_PHASE'; t.level = a.payload.level; } break;
+      case 'SET_CONSPIRACY': if (!isHost || !inLobby) return 'NOT_HOST';
+        if (Array.isArray(a.payload.targets)) L.targets = a.payload.targets.filter(u => L.members[u]).slice(0, 4);
+        if ('hints' in a.payload) L.hints = !!a.payload.hints; break;
+      case 'SET_TARGET': if (!isHost || !inLobby) return 'NOT_HOST'; L.target = [2, 3, 5].includes(a.payload.n) ? a.payload.n : 5; break;
+      case 'SET_BOT_SPEED': if (!isHost) return 'NOT_HOST'; L.botSpeed = a.payload.speed === 'quick' ? 'quick' : 'real'; break;
+      case 'SET_TITLES': if (!isHost || !inLobby) return 'NOT_HOST';
+        if ('on' in a.payload) L.titlesOn = !!a.payload.on;
+        if (Array.isArray(a.payload.levels) && a.payload.levels.length === 5) L.titles = a.payload.levels.map((v, i) => { const l = String(v || '').split(',').map(t => t.trim().slice(0, 40)).filter(Boolean).slice(0, 12); return l.length ? l : DEFAULT_LEVELS[i].slice(); });
+        break;
+      case 'REMOVE': if (!isHost || !inLobby) return 'NOT_HOST'; { const t = L.members[a.payload.uid]; if (!t || a.payload.uid === this.uid) return 'WRONG_PHASE';
+          if (!t.bot && t.ready) return 'WRONG_PHASE'; delete L.members[a.payload.uid]; if (!t.bot) L.kicked[a.payload.uid] = now; } break;
+      case 'SET_SEATS': if (!isHost || !inLobby) return 'NOT_HOST'; { const n = a.payload.n === 5 ? 5 : 4;
+          while (Object.keys(L.members).length > n) { const b = this.roster().reverse().find(x => x.bot); if (!b) return 'ROOM_FULL'; delete L.members[b.uid]; }
+          L.seatsWanted = n; } break;
+      case 'SET_MODE': if (!isHost || !inLobby) return 'NOT_HOST'; L.mode = a.payload.mode === 'split' ? 'split' : 'single'; break;
+      case 'START': { if (!isHost || !inLobby) return 'NOT_HOST'; const r = this.roster();
+          if (r.length !== L.seatsWanted || !r.every(p => p.bot || (p.ready && p.audio))) return 'NOT_READY';
+          this.st = Engine.createMatch({ players: r.map(p => ({ uid: p.uid, name: p.name, bot: p.bot, level: p.level })), mode: L.mode, tz: L.tz, now, matchId: 'M' + now.toString(36).toUpperCase(), titles: L.titlesOn ? L.titles : null, target: L.target || 5, targets: (L.targets || []).filter(u => L.members[u]), hints: L.hints !== false }); break; }
+      case 'REMATCH': if (!isHost || !this.st || !['MATCH_RESULT', 'INCOMPLETE'].includes(this.st.phase)) return 'NOT_HOST';
+        { const prev = this.st; const players = prev.lobby.map(u => ({ uid: u, name: prev.names[u], bot: prev.bots[u], level: prev.levels && prev.levels[u] }));
+          this.st = Engine.createMatch({ players, mode: prev.mode, tz: prev.tz, now, matchId: 'M' + now.toString(36).toUpperCase(), titles: L.titlesOn ? L.titles : null, target: L.target || 5, targets: (L.targets || []).filter(u => prev.names[u]), hints: L.hints !== false }); } break;
+      case 'BACK_TO_LOBBY': if (!isHost || !this.st || !['MATCH_RESULT', 'INCOMPLETE'].includes(this.st.phase)) return 'NOT_HOST';
+        this.st = null; Object.values(L.members).forEach(x => { if (!x.bot) x.ready = false; }); this.rescanMembers(); break;
+      case 'END_MATCH': if (!isHost || !this.st || ['MATCH_RESULT', 'INCOMPLETE'].includes(this.st.phase)) return 'NOT_HOST';
+        this.st.phase = 'INCOMPLETE'; this.st.deadline = null; this.st.incompleteReason = 'The host ended the match early.'; this.st.v++; break;
+      default:
+        if (!this.st) return 'WRONG_PHASE';
+        { const r = Engine.apply(this.st, uid, a, now); if (r) return r; }
+    }
+    return null;
+  }
+  /* who may change the room song right now */
+  musicBlock(uid, now) {
+    const seated = this.st ? !!this.st.names[uid] : !!this.lobby.members[uid];
+    if (!seated) return 'WATCHERS_NO_MUSIC';
+    if (now - (this.music.startedAt || 0) < MUSIC_LOCK) return 'MUSIC_LOCKED';
+    if (this.st && this.st.losses) { const max = Math.max(...Object.values(this.st.losses)); if (max > 0 && this.st.losses[uid] === max) return 'LOSER_NO_MUSIC'; }
+    return null;
+  }
+  act(uid, a) { const r = this.handle(uid, a); this.changed(); return r; }
+  remoteAction(uid, d) {
+    if (!d || !d.actionId || this.processed[uid] === d.actionId) return;
+    this.processed[uid] = d.actionId;
+    const r = this.handle(uid, { type: d.type, payload: d.payload || {} });
+    this.acks[uid] = { actionId: d.actionId, ok: !r, reason: r || null };
+    this.changed();
+  }
+  changed() { this.schedule(); this.quips(); this.publish(); this.save(); }
+  schedule() {
+    this.timers.forEach(clearTimeout); this.timers = [];
+    const st = this.st; if (!st) return;
+    const now = Date.now();
+    const dls = [st.deadline, st.phase === 'DEALING' ? st.dealTotal : null].filter(x => x != null);
+    if (dls.length) this.timers.push(setTimeout(() => { if (Engine.tick(this.st, Date.now())) this.changed(); else this.schedule(); }, Math.max(0, Math.min(...dls) - now) + 30));
+    let botKey = null;
+    if (st.seats) for (const u of st.seats) if (st.bots[u] && Engine.botAction(st, u)) { botKey = st.v + ':' + u; break; }
+    if (this.botTimer && this.botTimer.key !== botKey) { clearTimeout(this.botTimer.id); this.botTimer = null; }
+    if (botKey && !this.botTimer) {
+      const u = botKey.split(':').slice(1).join(':'), dealing = st.phase === 'DEALING';
+      const quick = this.lobby.botSpeed === 'quick';
+      const ms = dealing ? 500 + Math.random() * 700 : quick ? 1000 + Math.random() * 2000 : 5000 + Math.random() * 10000;
+      this.botTimer = { key: botKey, id: setTimeout(() => { this.botTimer = null; const a = Engine.botAction(this.st, u); if (a && Engine.apply(this.st, u, a, Date.now()) === null) this.changed(); else this.schedule(); }, ms), at: Date.now() + ms, u };
+    }
+    // bots crown others when a title has options and no human picked within 6 seconds
+    const r = st.lastResult;
+    if (st.phase === 'HAND_RESULT' && r && r.titleOptions && !r.crownedBy) { const b = st.seats.find(u => st.bots[u] && u !== r.uid);
+      if (b) this.timers.push(setTimeout(() => { const o = r.titleOptions; if (Engine.apply(this.st, b, { type: 'CROWN', payload: { name: o[Math.floor(Math.random() * o.length)] } }, Date.now()) === null) this.changed(); }, 6000)); }
+  }
+  quips() {
+    const st = this.st; if (!st || !st.seats || !this.onQuip) return;
+    const bots = st.seats.filter(u => st.bots[u]); if (!bots.length) return;
+    const say = (u, list, pr) => { if (u && Math.random() < (pr || 0.5)) this.onQuip(u, list[Math.floor(Math.random() * list.length)]); };
+    let key = '';
+    if (st.phase === 'CUT_REVEAL') { key = 'c' + st.handNo + '-' + st.transfer.endsAt; if (key !== this.quipKey) { const g = st.seats[st.transfer.giver], r = st.seats[st.transfer.recipient];
+        if (st.bots[g]) say(g, QUIPS.cut, 0.25); else if (st.bots[r]) say(r, QUIPS.pickup, 0.3); } }
+    if (st.phase === 'HAND_RESULT' || st.phase === 'MATCH_RESULT') { key = 'h' + st.handNo; if (key !== this.quipKey) { const d = st.lastResult.uid;
+        if (st.bots[d]) say(d, QUIPS.selfDonkey); else say(bots[Math.floor(Math.random() * bots.length)], QUIPS.tease); } }
+    if (key) this.quipKey = key;
+  }
+  async publish() {
+    this.seq++;
+    const st = this.st, members = this.roster().map(p => ({ uid: p.uid, name: p.name, bot: p.bot, level: p.level || null, ready: p.ready, audio: p.audio }));
+    const doc = { code: this.code, hostUid: this.uid, seq: this.seq, writtenAt: Date.now(),
+      lobby: { seatsWanted: this.lobby.seatsWanted, mode: this.lobby.mode, tz: this.lobby.tz, titlesOn: this.lobby.titlesOn !== false, titles: this.lobby.titles || DEFAULT_LEVELS, target: this.lobby.target || 5, botLevel: this.lobby.botLevel, botSpeed: this.lobby.botSpeed || 'real', watchers: Object.entries(this.lobby.watchers || {}).map(([uid, w]) => ({ uid, name: w.name })), musicLock: MUSIC_LOCK, botThinking: this.botTimer ? { u: this.botTimer.u, at: this.botTimer.at } : null, targets: this.lobby.targets || [], hints: this.lobby.hints !== false, members, kicked: Object.keys(this.lobby.kicked) },
+      music: this.music, proposals: this.proposals, match: st ? Engine.publicView(st) : null, acks: this.acks, hands: {}, hostPub: this.keys ? this.keys.pub : null };
+    this.out(doc, st ? Engine.privateHand(st, this.uid) : [], st ? Engine.conspiracyHint(st, this.uid) : null);
+    if (this.local || !this.net) return;
+    const plain = {};
+    if (st && st.hands) for (const u of st.seats) if (u !== this.uid && !st.bots[u]) plain[u] = { cards: Engine.privateHand(st, u), hint: Engine.conspiracyHint(st, u), pub: this.lobby.members[u] && this.lobby.members[u].pub };
+    const v = st ? st.v : 0;
+    this.chain = (this.chain || Promise.resolve()).then(async () => {
+      for (const [u, h] of Object.entries(plain)) {
+        if (Crypt.ok && h.pub && this.keys) { try { doc.hands[u] = await Crypt.enc(await Crypt.key(this.keys.priv, h.pub), { v, cards: h.cards, hint: h.hint }); continue; } catch (e) {} }
+        doc.hands[u] = { plain: h.cards, hint: h.hint };
+      }
+      this.net.writePub(doc);
+    });
+  }
+  save() {
+    clearTimeout(this.saveT);
+    this.saveT = setTimeout(() => { const s = this.snapshot(); if (this.local) return; LS.set('dotd-host-' + this.code, s); this.net && this.net.writePrivate(s); }, 800);
+  }
+}
+const BUILD = { version: '2.0', lab: false, web: true };
+/* ---------- network session (claude.ai shared db + room) ---------- */
+const Net = {
+  db: null, user: null, room: null, nroom: null, uid: null, canWrite: null, ready: false, unsubs: [], pollT: null,
+  async init() {
+    try { if (!window.claude || !claude.use) { this.ready = true; return; }
+      const [db, user, room] = await Promise.all([claude.use('db'), claude.use('user'), claude.use('room')]);
+      this.db = db; this.user = user; this.room = room;
+      if (user) { this.uid = await user.id(); this.canWrite = await user.can('data.write'); }
+    } catch (e) { console.warn(e); }
+    this.ready = true;
+  },
+  online() { return !!(this.db && this.uid) && this.canWrite !== false; },
+  canWatch() { return !!(this.db && this.uid); },
+  pubRef(code) { return this.db.doc('rooms/' + code); },
+  async start(code, asHost) {
+    this.stop(); const db = this.db, uid = this.uid;
+    this.writePubW = makeWriter(this.pubRef(code), e => App.netError(e));
+    this.writePrivW = makeWriter(db.doc('data/users/' + uid + '/host-' + code), () => {});
+    this.actW = makeWriter(db.doc('rooms/' + code + '/actions/' + uid), e => App.netError(e));
+    this.chatW = makeWriter(db.doc('rooms/' + code + '/chat/' + uid), e => App.netError(e));
+    this.botChatW = makeWriter(db.doc('rooms/' + code + '/chat/bots'), () => {});
+    this.unsubs.push(db.collection('rooms/' + code + '/songs').onSnapshot(s => { const d = {}; s.docs.forEach(x => { if (x.exists) d[x.id] = x.data(); }); App.songs = d; if (App.sheet === 'music') App.renderSheet(); }, () => {}));
+    this.unsubs.push(db.collection('rooms/' + code + '/chat').onSnapshot(s => { const d = {}; s.docs.forEach(x => { if (x.exists) d[x.id] = x.data(); }); App.chatDocs = d; renderChat(); }, () => {}));
+    if (this.room) { try { const r = await this.room.join('dotd-' + code.toLowerCase()); this.nroom = r;
+        r.presence({ uid }); App.online = new Set(r.peers().map(p => p.by).filter(Boolean));
+        this.unsubs.push(r.onPeers(c => { App.online = new Set(c.peers.map(p => p.by).filter(Boolean)); App.render(); }));
+        this.unsubs.push(r.on('sync', () => { if (!App.isHost) this.refresh(code); }));
+        this.unsubs.push(r.on('act', () => { if (App.isHost) this.refreshActions(code); }));
+        this.unsubs.push(r.on('react', m => App.showReaction(m.by, m.data && m.data.e)));
+        this.unsubs.push(r.on('chat', () => this.refreshChat(code)));
+      } catch (e) { this.nroom = null; } }
+    if (asHost) {
+      this.unsubs.push(db.collection('rooms/' + code + '/members').onSnapshot(s => {
+        let ch = false; s.docs.forEach(d => { if (d.exists && App.host.memberJoined(d.id, d.data())) ch = true; }); if (ch) App.host.changed(); }, e => App.netError(e)));
+      this.unsubs.push(db.collection('rooms/' + code + '/actions').onSnapshot(s => s.docs.forEach(d => d.exists && App.host.remoteAction(d.id, d.data())), e => App.netError(e)));
+    } else {
+      this.unsubs.push(this.pubRef(code).onSnapshot(s => s.exists && App.onPub(s.data()), e => App.netError(e)));
+    }
+    this.pollT = setInterval(() => { if (document.hidden) return;
+      if (App.isHost) this.refreshActions(code); else if (Date.now() - App.lastRecv > 3000) this.refresh(code); if (!this.nroom) this.refreshChat(code); }, 3000);
+  },
+  async refresh(code) { try { const s = await this.pubRef(code).get(); if (s.exists) App.onPub(s.data()); } catch (e) {} },
+  async refreshChat(code) { try { const s = await this.db.collection('rooms/' + code + '/chat').get(); const d = {}; s.docs.forEach(x => { if (x.exists) d[x.id] = x.data(); }); App.chatDocs = d; renderChat(); } catch (e) {} },
+  async refreshActions(code) { try { const s = await this.db.collection('rooms/' + code + '/actions').get(); s.docs.forEach(d => d.exists && App.host.remoteAction(d.id, d.data())); } catch (e) {} },
+  writePub(doc) { this.writePubW(doc).then(() => this.emit('sync', { s: doc.seq })); },
+  writePrivate(s) { this.writePrivW({ snap: JSON.stringify(s), at: Date.now() }); },
+  emit(t, d) { if (this.nroom) this.nroom.emit(t, d).catch(() => {}); },
+  stop() { this.unsubs.forEach(u => { try { u(); } catch (e) {} }); this.unsubs = []; clearInterval(this.pollT);
+    if (this.nroom) { this.nroom.leave().catch(() => {}); this.nroom = null; } }
+};
+
+/* ---------- app ---------- */
+const SUITSYM = { C: '♣', D: '♦', H: '♥', S: '♠' }, RNAME = { J: 'Jack', Q: 'Queen', K: 'King', A: 'Ace' };
+const SUIT_SETS = { en: { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' }, one: { C: 'Club', D: 'Diamond', H: 'Heart', S: 'Spade' }, hi: { C: 'Kilwar', D: 'Chaukat', H: 'Badam', S: 'Ispik' } };
+function suitName(x, one) { const e = (one ? SUIT_SETS.one : SUIT_SETS.en)[x], h = SUIT_SETS.hi[x], m = App.suitMode; return m === 'hi' ? h : m === 'both' ? h + ' (' + e + ')' : e; }
+const fmtLog = t => esc(t).replace(/\[\[([CDHS])\]\]/g, (_, x) => suitName(x)).replace(/\{\{([CDHS]_(?:10|[2-9JQKA]))\}\}/g, (_, c) => '<b>' + short(c) + '</b>');
+const SEAT_COLORS = ['#F2A516', '#EC5F8C', '#3FC7A4', '#7EB2FF', '#C49BFF'];
+function colorOf(u) { const p = App.pub; const list = (p.match && p.match.lobby) || (p.lobby.members || []).map(x => x.uid); const i = list.indexOf(u); return SEAT_COLORS[(i < 0 ? 0 : i) % 5]; }
+function avatar(u) { return `<span class="av" style="--c:${colorOf(u)}" aria-hidden="true">${esc((nameOf(u).replace(/^Bot(?=[A-Z])/, '')[0] || '?').toUpperCase())}</span>`; }
+const cardName = c => (RNAME[c.slice(2)] || c.slice(2)) + ' of ' + suitName(c[0]);
+const short = c => c.slice(2) + SUITSYM[c[0]];
+function cardHTML(c, cls = '', attrs = '') {
+  const red = c[0] === 'D' || c[0] === 'H';
+  return `<button type="button" class="card ${red ? 'red' : ''} ${cls}" aria-label="${cardName(c)}" data-card="${c}" ${attrs}><span class="r">${c.slice(2)}</span><span class="s">${SUITSYM[c[0]]}</span><span class="big" aria-hidden="true">${SUITSYM[c[0]]}</span></button>`;
+}
+const cardStatic = (c, cls = '') => cardHTML(c, cls, 'tabindex="-1" disabled style="opacity:1;cursor:default"');
+
+const App = {
+  view: 'home', uid: null, name: '', code: null, host: null, isHost: false, local: false, pub: null, hand: [], sel: [], pending: null,
+  offset: 0, lastRecv: 0, online: new Set(), dealCount: 3, seatOrder: null, musicKey: '', homeMsg: '', myKeys: null, joining: false, suitMode: LS.get('dotd-suits') || 'both', practiceLevel: LS.get('dotd-botlevel') || 'medium',
+  musicPick: (LS.get('dotd-music') || {}).src === 'own' ? { src: 'own' } : { src: 'room' }, chatDocs: {}, localChat: [], chatOpen: false, chatSeen: 0, openSets: new Set(), watching: false, songs: {}, localSongs: [], teaseTarget: '', clipJob: null,
+
+  async boot() {
+    this.name = LS.get('dotd-name') || '';
+    this.render();
+    await Net.init();
+    this.uid = Net.uid || LS.get('dotd-local-uid') || ('local-' + Math.random().toString(36).slice(2, 10)); LS.set('dotd-local-uid', this.uid);
+    this.render();
+    setInterval(() => this.tickUI(), 200);
+  },
+  toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(this.toastT); this.toastT = setTimeout(() => t.classList.add('hidden'), 3800); },
+  netError(e) { console.warn(e); if (e && e.code === 'invalid_argument') this.toast("This account can’t save game moves here. Ask the owner to share the page with you as an editor."); else if (e && e.code === 'quota_exceeded') this.toast('The game storage is full. Ask the owner to clear old rooms.'); },
+
+  /* ----- entering rooms ----- */
+  setName() { const v = ($('#nm') && $('#nm').value.trim().slice(0, 24)) || ''; if (!v) { this.homeMsg = 'Enter a display name first.'; this.render(); return false; } this.name = v; LS.set('dotd-name', v); return true; },
+  newCode() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ'; let s = ''; for (let i = 0; i < 5; i++) s += A[Engine.secureRand(A.length)]; return s; },
+  startPractice(seats) {
+    if (!this.setName()) return;
+    this.local = true; this.isHost = true; this.code = 'PRACTICE';
+    this.host = new Host({ code: this.code, uid: this.uid, name: this.name, local: true, out: (d, h, x) => this.receive(d, h, x), seats, botLevel: this.practiceLevel, onQuip: (u, x) => this.botSay(u, x) });
+    this.chatDocs = {}; this.localChat = []; this.chatSeen = 0;
+    for (let i = 1; i < seats; i++) this.host.handle(this.uid, { type: 'ADD_BOT', payload: {} });
+    this.view = 'room'; this.host.changed();
+  },
+  async createRoom() {
+    if (!this.setName() || this.joining) return; this.joining = true; this.render();
+    try {
+      let code; for (let i = 0; i < 5; i++) { code = this.newCode(); const s = await Net.pubRef(code).get(); if (!s.exists) break; }
+      this.local = false; this.isHost = true; this.code = code;
+      this.host = new Host({ code, uid: this.uid, name: this.name, local: false, out: (d, h, x) => this.receive(d, h, x), net: Net, onQuip: (u, x) => this.botSay(u, x) });
+      if (Crypt.ok) this.host.keys = await Crypt.gen();
+      LS.set('dotd-last', { code, name: this.name });
+      await Net.start(code, true); this.view = 'room'; this.host.changed();
+    } catch (e) { this.homeMsg = "Couldn’t create the room. Check your connection and try again."; console.warn(e); }
+    this.joining = false; this.render();
+  },
+  async joinRoom(code, watch) {
+    if (!this.setName() || this.joining) return; code = (code || '').toUpperCase().replace(/[^A-Z]/g, '');
+    if (code.length !== 5) { this.homeMsg = 'Room codes have five letters.'; this.render(); return; }
+    this.joining = true; this.render();
+    try {
+      const s = await Net.pubRef(code).get();
+      if (!s.exists) { this.homeMsg = 'No room uses the code ' + code + '. Check it with your host.'; this.joining = false; this.render(); return; }
+      const d = s.data(); this.code = code; this.local = false;
+      LS.set('dotd-last', { code, name: this.name });
+      if (d.hostUid === this.uid) {
+        let snap = null; try { const p = await Net.db.doc('data/users/' + this.uid + '/host-' + code).get(); if (p.exists) snap = JSON.parse(p.data().snap); } catch (e) {}
+        snap = snap || LS.get('dotd-host-' + code);
+        this.isHost = true;
+        this.host = new Host({ code, uid: this.uid, name: this.name, local: false, out: (dd, h, x) => this.receive(dd, h, x), net: Net, onQuip: (u, x) => this.botSay(u, x) });
+        if (snap) this.host.restore(snap); if (!this.host.keys && Crypt.ok) this.host.keys = await Crypt.gen();
+        if (this.host.st && this.host.st.deadline && this.host.st.deadline < Date.now() && this.host.st.phase === 'TURN') { this.host.st.deadline = Date.now() + Engine.T.turn; this.host.st.log.push('Resumed after the host reconnected.'); }
+        await Net.start(code, true); this.view = 'room'; this.host.changed();
+      } else {
+        this.isHost = false; this.watching = !!watch;
+        if (watch) {
+          if (Net.canWrite !== false) await Net.db.doc('rooms/' + code + '/members/' + this.uid).set({ name: this.name, watch: true, joinedAt: Date.now(), left: false });
+          this.pub = null; this.view = 'room'; await Net.start(code, false); Net.emit('act', {}); await Net.refresh(code); this.joining = false; this.render(); return;
+        }
+        this.myKeys = LS.get('dotd-key-' + code);
+        if (!this.myKeys && Crypt.ok) { this.myKeys = await Crypt.gen(); LS.set('dotd-key-' + code, this.myKeys); }
+        const mref = Net.db.doc('rooms/' + code + '/members/' + this.uid); const prev = await mref.get();
+        await mref.set({ name: this.name, pub: this.myKeys ? this.myKeys.pub : null, joinedAt: prev.exists && !prev.data().left && !prev.data().watch ? prev.data().joinedAt : Date.now(), left: false, watch: false });
+        this.pub = null; this.view = 'room'; await Net.start(code, false); Net.emit('act', {}); await Net.refresh(code);
+      }
+    } catch (e) { console.warn(e); this.homeMsg = "Couldn’t join. Check your connection and that you can edit this page."; }
+    this.joining = false; this.render();
+  },
+  async leave() {
+    this.closeSheet();
+    if (!this.local && !this.isHost && Net.db && Net.canWrite !== false) { try { await Net.db.doc('rooms/' + this.code + '/members/' + this.uid).set({ name: this.name, left: true, joinedAt: 0, watch: this.watching }); } catch (e) {} }
+    if (this.host) { this.host.timers.forEach(clearTimeout); }
+    Net.stop(); Music.stop(); this.musicKey = '';
+    if (this.local) LS.set('dotd-last', LS.get('dotd-last'));
+    this.chatOpen = false; this.chatDocs = {}; this.localChat = []; renderChat();
+    Object.assign(this, { watching: false, view: 'home', host: null, isHost: false, local: false, pub: null, hand: [], sel: [], pending: null, code: null, seatOrder: null });
+    this.render();
+  },
+
+  /* ----- state in ----- */
+  receive(doc, hand, hint) { this.pub = doc; this.hand = hand || []; this.hint = hint || null; this.offset = 0; this.lastRecv = Date.now(); this.afterPub(); },
+  async onPub(doc) {
+    if (this.pub && doc.seq <= this.pub.seq && doc.hostUid === this.pub.hostUid) { this.lastRecv = Date.now(); return; }
+    this.pub = doc; this.lastRecv = Date.now(); this.offset = Date.now() - doc.writtenAt;
+    const h = doc.hands && doc.hands[this.uid];
+    if (h) { try { if (h.plain) { this.hand = h.plain; this.hint = h.hint || null; } else { const k = await Crypt.key(this.myKeys.priv, doc.hostPub); const d = await Crypt.dec(k, h); this.hand = d.cards; this.hint = d.hint || null; } } catch (e) { console.warn('hand', e); } }
+    else { this.hand = []; this.hint = null; }
+    if (this.pending && doc.acks && doc.acks[this.uid] && doc.acks[this.uid].actionId === this.pending.id) {
+      const a = doc.acks[this.uid]; this.pending = null; if (!a.ok) this.toast(REASONS[a.reason] || 'That move was not accepted.');
+    }
+    this.afterPub();
+  },
+  afterPub() {
+    const m = this.pub.match;
+    // keep only legal selection
+    this.sel = this.sel.filter(c => this.hand.includes(c));
+    if (!m || m.phase !== 'SEATING_ORDER') this.seatOrder = null;
+    if (m && m.phase === 'DEALING' && m.dealTo >= 0) { const left = m.quotas[m.dealTo] - m.dealt[m.dealTo]; this.dealCount = Math.max(1, Math.min(this.dealCount, left)); }
+    this.syncMusic(); this.render();
+  },
+  syncMusic() {
+    const mu = this.pub && this.pub.music, pk = this.musicPick;
+    if (pk.src === 'own') { Music.stop(); this.musicKey = 'own'; return; }
+    if (!mu || Music.state !== 'on') return;
+    const key = (mu.kind === 'song' ? 'song:' + mu.song.id : mu.track) + '@' + mu.startedAt; if (key === this.musicKey) return;
+    this.musicKey = key; const off = Date.now() - (mu.startedAt + this.offset);
+    if (mu.kind === 'song') { const loc = this.localSongs.find(x => x.id === mu.song.id); Music.playSong(loc ? loc.url : (BUILD.web ? '/songs/' : '/_blob/') + mu.song.id, off); }
+    else Music.play(mu.track, off);
+  },
+  setMusic(pick) {
+    this.musicPick = pick; LS.set('dotd-music', pick);
+    if (pick.src !== 'own') Music.unlock();
+    if (pick.src !== 'own' && !Music.enable()) { this.toast('This browser blocked audio. Tap again, or check the device’s sound settings.'); return; }
+    this.musicKey = ''; this.syncMusic();
+    if (this.pub && !this.pub.match) { const me = this.pub.lobby.members.find(x => x.uid === this.uid); if (me && !me.audio) this.send('SET_LOBBY', { audio: true }); }
+    this.render(); if (this.sheet) this.renderSheet();
+  },
+  musicLabel() { const pk = this.musicPick, mu = this.pub && this.pub.music; if (pk.src === 'own') return 'My music app'; if (Music.state !== 'on') return 'Choose music'; if (Music.muted) return 'Muted';
+    return mu && mu.kind === 'song' ? mu.song.title : Music.get(mu ? mu.track : 'chai').title; },
+  musicBlock() {
+    const p = this.pub, mu = p.music, m = p.match;
+    const seated = m ? !!m.names[this.uid] : (p.lobby.members || []).some(x => x.uid === this.uid);
+    if (!seated) return { why: 'Only seated players can change the music.' };
+    const left = mu.startedAt + (p.lobby.musicLock || 30000) - (Date.now() - this.offset);
+    if (left > 0) return { why: 'This song is locked for its first 30 seconds.', until: mu.startedAt + (p.lobby.musicLock || 30000) };
+    if (m && m.losses) { const max = Math.max(...Object.values(m.losses)); if (max > 0 && m.losses[this.uid] === max) return { why: 'You have the most losses (' + max + '), so you can’t change the song until you make a comeback.' }; }
+    return null;
+  },
+  songList() { return [...this.localSongs.map(x => ({ id: x.id, title: x.title, by: this.uid })), ...Object.entries(this.songs).map(([id, d]) => ({ id, title: d.title, by: d.by, clip: d.clip }))]; },
+  async addSong(file) {
+    if (!file) return; if (file.size > 20e6) { this.toast('That file is over 20 MB. Pick a shorter song.'); return; }
+    const title = file.name.replace(/\.[^.]+$/, '').slice(0, 60) || 'My song';
+    if (this.local) { this.localSongs.push({ id: 'local-' + Math.random().toString(36).slice(2, 9), title, url: URL.createObjectURL(file) }); this.toast('Added “' + title + '”.'); this.renderSheet(); return; }
+    let assets = null; try { assets = await claude.use('assets'); } catch (e) {}
+    if (!assets) { this.toast('Adding songs needs edit access to this page. Ask the owner to make you an Editor.'); return; }
+    const t = (file.type || '').toLowerCase(), n = file.name.toLowerCase();
+    let blob = file, type = null, clip = false;
+    if (/mp4|m4a|aac/.test(t) || /\.(m4a|mp4|aac)$/.test(n)) type = 'video/mp4';
+    else if (/webm/.test(t) || /\.webm$/.test(n)) type = 'video/webm';
+    else { try { const r = await this.makeClip(file); blob = r.blob; type = r.type; clip = true; } catch (e) { console.warn(e); this.clipJob = null; this.renderSheet(); this.toast('This browser couldn’t read that file. Try an M4A or MP3 song.'); return; } }
+    try { this.clipJob = { msg: 'Uploading…' }; this.renderSheet();
+      const res = await assets.upload(blob, { type });
+      await Net.db.doc('rooms/' + this.code + '/songs/' + res.id).set({ title, by: this.uid, at: Date.now(), clip });
+      this.toast('Added “' + title + '” for the whole room.');
+    } catch (e) { console.warn(e); this.toast(e && e.code === 'quota_or_state' ? 'The room’s song storage is full.' : e && e.code === 'unsupported_type' ? 'That format can’t be stored. Try an M4A song.' : 'Upload failed. Try again.'); }
+    this.clipJob = null; this.renderSheet();
+  },
+  /* any format the browser can decode becomes a 60-second clip recorded in a storable container */
+  async makeClip(file) {
+    const AC = window.AudioContext || window.webkitAudioContext, ctx = new AC();
+    const buf = await ctx.decodeAudioData(await file.arrayBuffer());
+    const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find(x => window.MediaRecorder && MediaRecorder.isTypeSupported(x));
+    if (!mime) throw new Error('no recorder');
+    const dur = Math.min(60, buf.duration), dest = ctx.createMediaStreamDestination(), src = ctx.createBufferSource();
+    src.buffer = buf; src.connect(dest);
+    const rec = new MediaRecorder(dest.stream, { mimeType: mime, audioBitsPerSecond: 128000 }), chunks = [];
+    rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+    const done = new Promise(r => rec.onstop = r);
+    rec.start(1000); src.start(0, 0, dur); const t0 = Date.now();
+    this.clipJob = { end: t0 + dur * 1000, msg: 'Preparing a ' + Math.round(dur) + '-second clip' }; this.renderSheet();
+    await new Promise(r => setTimeout(r, dur * 1000 + 300)); rec.stop(); await done; ctx.close();
+    return { blob: new Blob(chunks, { type: mime.split(';')[0] }), type: mime.startsWith('audio/mp4') ? 'video/mp4' : 'video/webm' };
+  },
+
+  /* ----- actions out ----- */
+  send(type, payload = {}) {
+    if (this.host) { const r = this.host.act(this.uid, { type, payload }); if (r) this.toast(REASONS[r] || r); return; }
+    if (this.pending) return;
+    const id = this.uid.slice(-6) + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    this.pending = { id, at: Date.now(), doc: { actionId: id, type, payload, at: Date.now() }, tries: 1 };
+    Net.actW(this.pending.doc).then(() => Net.emit('act', {})); this.render();
+  },
+  enableAudio() { this.setMusic({ src: 'room' }); },
+  /* ----- chat ----- */
+  chatList() {
+    const out = [...this.localChat];
+    Object.entries(this.chatDocs).forEach(([k, d]) => (d.msgs || []).forEach(m => out.push({ u: m.u || k, t: m.t, x: m.x })));
+    return out.filter(m => m && typeof m.x === 'string').sort((a, b) => a.t - b.t).slice(-80);
+  },
+  sendChat(text) {
+    text = String(text || '').trim().slice(0, 240); if (!text) return;
+    if (!this.local && Net.canWrite === false) { this.toast('You have view-only access, so you can watch but not chat.'); return; }
+    if (this.local) this.localChat.push({ u: this.uid, t: Date.now(), x: text });
+    else { const own = ((this.chatDocs[this.uid] || {}).msgs || []).concat({ t: Date.now(), x: text }).slice(-30);
+      this.chatDocs[this.uid] = { msgs: own }; Net.chatW({ msgs: own }).then(() => Net.emit('chat', {})); }
+    this.chatSeen = this.chatList().length; renderChat();
+  },
+  botSay(u, x) {
+    if (this.local) { this.localChat.push({ u, t: Date.now(), x }); renderChat(); return; }
+    const own = ((this.chatDocs.bots || {}).msgs || []).concat({ u, t: Date.now(), x }).slice(-30);
+    this.chatDocs.bots = { msgs: own }; Net.botChatW({ msgs: own }).then(() => Net.emit('chat', {})); renderChat();
+  },
+  tickUI() {
+    document.querySelectorAll('[data-dl]').forEach(el => {
+      const dl = +el.dataset.dl + this.offset, total = +el.dataset.total, left = Math.max(0, dl - Date.now());
+      const i = el.querySelector('i'); if (i) i.style.width = (100 * left / total) + '%';
+      const lab = el.nextElementSibling; if (lab && lab.classList.contains('tlabel')) lab.textContent = Math.ceil(left / 1000) + 's';
+    });
+    document.querySelectorAll('[data-cd]').forEach(el => { const left = Math.max(0, +el.dataset.cd + this.offset - Date.now()); el.textContent = '(' + Math.ceil(left / 1000) + ' s)';
+      if (!left && !el.dataset.fired) { el.dataset.fired = 1; setTimeout(() => this.sheet && this.renderSheet(), 50); } });
+    if (this.pending && Date.now() - this.pending.at > 6000 * this.pending.tries) {
+      if (this.pending.tries < 3) { this.pending.tries++; Net.actW(this.pending.doc).then(() => Net.emit('act', {})); }
+      else { this.pending = null; this.toast("The host’s device hasn’t confirmed your move. Check that the host still has the game open."); this.render(); }
+    }
+  },
+  showReaction(uid, e) {
+    if (!['👏', '😂', '🫏', '😬', '🔥'].includes(e)) return;
+    const el = document.querySelector(`[data-seat="${CSS.escape(uid || '')}"]`); if (!el) return;
+    const s = document.createElement('span'); s.className = 'react'; s.textContent = e; s.setAttribute('aria-hidden', 'true'); el.appendChild(s); setTimeout(() => s.remove(), 2500);
+  },
+
+  /* ----- sheets ----- */
+  openSheet(kind) { this.sheet = kind; this.renderSheet(); },
+  closeSheet() { this.sheet = null; $('#sheet').classList.add('hidden'); },
+  renderSheet() {
+    const sh = $('#sheet'); if (!this.sheet) return sh.classList.add('hidden');
+    let h = '';
+    if (this.sheet === 'menu') h = `<h2>Menu</h2><div class="row"><button class="btn" data-a="scores">Scores and history</button><button class="btn alt" data-a="help">How to play</button><button class="btn alt" data-a="leave">Leave room</button></div><section class="blk"><h3 style="font-size:20px">Suit names</h3><div style="margin-top:8px">${suitSeg()}</div><p class="note">Kilwar ♣, Chaukat ♦, Badam ♥, Ispik ♠</p></section><p class="note" style="margin-top:14px">Donkey of the Day ${BUILD.version}. ${this.local ? 'Practice table on this device.' : 'Room ' + esc(this.code) + (this.isHost && !BUILD.web ? '. The game runs on your device.' : '.')}</p>`;
+    if (this.sheet === 'help') h = `<h2>How to play</h2>${rulesHTML()}`;
+    if (this.sheet === 'music') h = `<h2>Music</h2>${musicHTML()}`;
+    if (this.sheet === 'player') h = playerSheetHTML();
+    if (this.sheet === 'tracker') h = `<h2>Tracker</h2>${trackerHTML()}`;
+    if (this.sheet === 'story') h = `<h2>Table story</h2>${storyHTML()}`;
+    if (this.sheet === 'scores') h = `<h2>Scores</h2>${scoresHTML(true)}`;
+    if (this.sheet === 'leave') h = `<h2>Leave the room?</h2><p>${this.isHost && !this.local && !BUILD.web ? "The game runs on your device. If you leave, play pauses for everyone until you rejoin with code " + esc(this.code) + '.' : this.local ? 'This practice game will end.' : (this.watching ? 'You’ll stop watching this room.' : 'Your seat is kept. If you are away during your turn, moves are made for you, and after two of them the game pauses.')}</p><div class="row"><button class="btn gold" data-a="leave-now">Leave</button>${this.isHost && this.pub && this.pub.match && !['MATCH_RESULT','INCOMPLETE'].includes(this.pub.match.phase) ? '<button class="btn alt" data-a="end-match">End match without a result</button>' : ''}</div>`;
+    sh.innerHTML = `<div><div class="row" style="justify-content:flex-end"><button class="btn alt small" data-a="close-sheet">Close</button></div>${h}</div>`;
+    sh.classList.remove('hidden');
+  },
+
+  /* ----- rendering ----- */
+  render() {
+    const root = $('#app'), ae = document.activeElement; const fk = ae && ae.dataset && (ae.dataset.card || ae.dataset.a);
+    const keep = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && ae.id && root.contains(ae) ? { id: ae.id, v: ae.value, s: ae.selectionStart } : null;
+    const drafts = {}; root.querySelectorAll('input.t[id]').forEach(i => drafts[i.id] = i.value);
+    if (this.view === 'home') root.innerHTML = homeHTML();
+    else if (!this.pub) root.innerHTML = `<div class="wrap"><p>Connecting to room ${esc(this.code)}…</p><button class="btn alt" data-a="leave-now">Back</button></div>`;
+    else { const m = this.pub.match; root.innerHTML = m && (m.names[this.uid] || this.watching) ? gameHTML() : lobbyHTML(); }
+    Object.entries(drafts).forEach(([id, v]) => { const i = document.getElementById(id); if (i && i.dataset.live !== 'server') i.value = v; });
+    if (keep) { const i = document.getElementById(keep.id); if (i) { i.value = keep.v; i.focus({ preventScroll: true }); try { i.setSelectionRange(keep.s, keep.s); } catch (e) {} } }
+    else if (fk) { const el = root.querySelector(`[data-card="${fk}"],[data-a="${fk}"]`); if (el) el.focus({ preventScroll: true }); }
+    document.body.classList.toggle('inroom', this.view === 'room' && !!this.pub);
+    document.body.classList.toggle('ingame', !!root.querySelector('#game'));
+    renderChat();
+    if (this.sheet && this.sheet !== 'menu' && this.sheet !== 'leave' && this.sheet !== 'help') this.renderSheet();
+    this.tickUI();
+  }
+};
+
+/* ---------- views ---------- */
+function rulesHTML(open = true) {
+  return `<details class="rules" ${open ? 'open' : ''}><summary>Rules</summary><ol>
+<li>Four or five players, one 52-card deck, no jokers or trumps. Ace is high, 2 is low.</li>
+<li>Everyone draws a card. The highest draw arranges the seats; a second draw makes the lowest card the first dealer. Ties redraw.</li>
+<li>The dealer deals clockwise in batches of their choice, from one card to a player’s whole share. With five players, 2 extra cards go to one player (or one each to two players, if the host chooses that). The extra-card seat moves one place clockwise every hand.</li>
+<li>The Ace of Spades opens the first trick. Everyone must follow the led suit if they can.</li>
+<li>If everyone follows, the trick is discarded and the highest card of the led suit leads next, with any card.</li>
+<li>If you can’t follow, you cut: give one or more cards of a single other suit. The table pile and your cards go to whoever played the highest card of the led suit. Everyone sees them for 20 seconds, then you lead next.</li>
+<li>Run out of cards and you’re safe for this hand. The last player holding cards is the Donkey, takes a loss and deals next.</li>
+<li>The host declares the series before the match: first to 2, 3 or 5 Donkey losses, consecutive or not, becomes Donkey of the Day, dated in the room’s timezone.</li></ol></details>
+<details class="rules"><summary>Proposed house-rule defaults in this version</summary><ul>
+<li>A cut is allowed on the opening Spades trick too.</li>
+<li>Emptying your hand only counts once the trick or pickup finishes, so your last card can still collect a pickup.</li>
+<li>If the player who should lead is out, the lead passes clockwise.</li>
+<li>If everyone empties on the final trick, the highest card of that trick takes the loss.</li>
+<li>If the same position comes round three times in one hand, it’s a stalemate: whoever holds the most cards takes the loss (the player due to lead, on a tie).</li>
+<li>30 seconds per move. When time runs out, your lowest legal card is played, or one lowest card is cut. After two automatic moves in a row the game pauses up to 2 minutes for you, then ends without an award.</li>
+<li>Music is required: the host picks a track and every player turns audio on before Ready. You may mute or lower your own volume.</li></ul></details>`;
+}
+function musicHTML() {
+  const p = App.pub, mu = p.music, pk = App.musicPick, blk = App.musicBlock();
+  const nowTitle = mu.kind === 'song' ? mu.song.title : Music.get(mu.track).title;
+  const opt = (src, title, note) => `<button class="track ${pk.src === src ? 'sel' : ''}" data-a="pick-src" data-src="${src}" aria-pressed="${pk.src === src}"><span class="grow"><b>${title}</b><br><span class="note">${note}</span></span></button>`;
+  const dis = blk ? 'disabled' : '';
+  const songs = App.songList();
+  return `<h3 style="font-size:20px">What you hear</h3><p class="note">Music is required. Pick one before you mark Ready.</p>
+  <div class="tracks">${opt('room', 'Room music', 'The song the table is playing, in sync')}${opt('own', 'My music app', 'Spotify, JioSaavn or YouTube Music playing alongside the game')}</div>
+  ${pk.src === 'own' ? `<p class="note">Start your playlist in the app, then come back. Your app keeps playing in the background.</p><a class="btn alt" href="https://open.spotify.com" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">Open Spotify</a>` : ''}
+  ${Music.blocked || Music.songError ? `<p class="err">${Music.songError ? 'This device can’t play the current song file.' : 'Your browser paused the music.'} <button class="btn alt small" data-a="audio">Try again</button></p>` : ''}
+  <section class="blk"><h3 style="font-size:20px">Room music</h3>
+  <p>Now playing: <b>${esc(nowTitle)}</b>${mu.by ? ', picked by ' + esc(nameOf(mu.by)) : ''}.</p>
+  <p class="note">Any seated player can change the song once it has played for 30 seconds. Whoever has the most losses can’t touch the music until they make a comeback.</p>
+  ${blk ? `<p class="err" role="status">${blk.why}${blk.until ? ` <span data-cd="${blk.until}"></span>` : ''}</p>` : ''}
+  <h4 class="sub">Game tracks</h4><div class="tracks">${TRACKS.map(t => `<button class="track ${mu.kind !== 'song' && mu.track === t.id ? 'sel' : ''}" data-a="set-synth" data-t="${t.id}" ${dis}><span class="grow"><b>${t.title}</b><br><span class="note">${t.note}</span></span></button>`).join('')}</div>
+  <h4 class="sub">Songs added by players</h4>
+  <div class="tracks">${songs.map(x => `<button class="track ${mu.kind === 'song' && mu.song.id === x.id ? 'sel' : ''}" data-a="set-song" data-id="${esc(x.id)}" data-t="${esc(x.title)}" ${dis}><span class="grow"><b>${esc(x.title)}</b><br><span class="note">Added by ${esc(nameOf(x.by))}${x.clip ? ', 60-second clip' : ''}</span></span></button>`).join('') || '<p class="note">No songs yet.</p>'}</div>
+  ${App.clipJob ? `<p class="status">${App.clipJob.msg}${App.clipJob.end ? ` <span data-cd="${App.clipJob.end - App.offset}"></span>` : ''}</p>` : `<label class="btn alt" style="display:inline-block;margin-top:10px">Add a song from this device<input type="file" accept="audio/*,video/mp4,video/webm,.m4a,.mp3" data-change="song" hidden></label>
+  <p class="note">${BUILD.web ? 'MP3, M4A, WAV and OGG files up to 20 MB are added whole.' : 'M4A and MP4 files are added whole. Other formats, such as MP3, become a 60-second clip, which takes a minute to prepare.'} Add only music you’re allowed to share with your friends.</p>`}</section>
+  ${Music.state === 'on' && pk.src !== 'own' ? `<section class="blk"><label class="f" for="vol">Volume on this device</label><input id="vol" type="range" min="0" max="1" step="0.05" value="${Music.vol}" style="width:100%">
+  <div class="row" style="margin-top:8px"><button class="btn alt small" data-a="mute" aria-pressed="${Music.muted}">${Music.muted ? 'Unmute' : 'Mute'}</button><span class="note">Muting only affects you.</span></div></section>` : ''}`;
+}
+function suitSeg() {
+  return `<span class="seg" role="group" aria-label="Suit names">${[['en', 'English'], ['hi', 'Hinglish'], ['both', 'Both']].map(([k, l]) => `<button data-a="suits" data-k="${k}" aria-pressed="${App.suitMode === k}">${l}</button>`).join('')}</span>`;
+}
+function homeHTML() {
+  const last = LS.get('dotd-last'), ready = Net.ready, online = Net.online();
+  let netNote = '';
+  if (!ready) netNote = '<p class="note">Checking whether online rooms are available…</p>';
+  else if (!online && BUILD.web) netNote = '<p class="note">Connecting to the game server…</p>';
+  else if (!online) netNote = `<p class="note">${Net.db && Net.canWrite === false ? "You can open this page but not save moves. Ask the owner to share it with you as an editor to play online." : 'Online rooms need the claude.ai link and sign-in. Practice works anywhere.'}</p>`;
+  return `<div class="wrap" id="home"><div class="hero"><h1>Donkey of the Day</h1>
+  ${BUILD.lab ? '<p class="tag labban">🧪 Lab copy: rooms and songs here are separate.</p>' : '<p class="tag">Follow suit, cut when you can’t, and don’t be the last one holding cards.</p>'}
+  <div class="row namerow"><input id="nm" class="t grow" maxlength="24" autocomplete="nickname" value="${esc(App.name)}" placeholder="Your display name" aria-label="Your display name"><button class="btn alt" data-a="help" aria-label="How to play">How to play</button></div>
+  ${App.homeMsg ? `<p class="err" role="alert">${esc(App.homeMsg)}</p>` : ''}
+  <div class="row suitrow"><span>Suit names</span>${suitSeg()}<span class="ver">v${BUILD.version}</span></div></div>
+  <div class="homeform">
+  <div class="choice"><h3>Play with friends</h3>${netNote}
+    <div class="row" style="margin-top:6px"><button class="btn gold" data-a="create" ${online && !App.joining ? '' : 'disabled'}>Create room</button>
+    ${last && last.code ? `<button class="btn alt" data-a="rejoin" ${online ? '' : 'disabled'}>Rejoin ${esc(last.code)}</button>` : ''}</div>
+    <div class="joinrow"><input id="code" class="t" maxlength="5" aria-label="Room code" placeholder="CODE" autocapitalize="characters"><button class="btn" data-a="join" ${online && !App.joining ? '' : 'disabled'}>Join</button><button class="btn alt" data-a="watch" ${Net.canWatch() && !App.joining ? '' : 'disabled'} title="Follow a match, chat and tease without a seat">Watch</button></div></div>
+  <div class="choice"><h3>Practice with bots</h3>
+    <div class="row" style="margin-top:6px"><select class="lvl" data-change="plevel" aria-label="Bot level">${LEVELS.map(([k, l]) => `<option value="${k}" ${App.practiceLevel === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+    <button class="btn" data-a="practice" data-n="4">4 players</button><button class="btn alt" data-a="practice" data-n="5">5 players</button></div></div>
+  </div></div>`;
+}
+function lobbyHTML() {
+  const p = App.pub, L = p.lobby, me = (L.members || []).find(x => x.uid === App.uid), H = App.isHost, m = p.match;
+  if (!me) {
+    const why = (L.kicked || []).includes(App.uid) ? 'The host removed you from this lobby.' : m ? 'A match is being played in this room. You can be seated after it ends and the host returns to the lobby.' : L.members.length >= L.seatsWanted ? 'Every seat in this room is taken.' : 'Joining…';
+    if (App.watching) return `<div class="wrap"><div class="note">Room code</div><div class="code">${esc(App.code)}</div><p>👀 You’re watching. The table appears here when the host starts the match.</p>
+      <ul class="list">${L.members.map(x => `<li>${avatar(x.uid)}<span class="grow">${esc(x.name)}${x.bot ? ' 🤖' : ''}</span>${x.bot ? '' : `<span class="tagp ${x.ready ? 'go' : ''}">${x.ready ? 'Ready' : 'Not ready'}</span>`}</li>`).join('')}</ul>
+      <div class="row" style="margin-top:14px"><button class="btn alt" data-a="music">Music</button><button class="btn alt chatbtn" data-a="chat">Chat${unreadBadge()}</button><button class="btn alt" data-a="leave-now">Stop watching</button></div></div>`;
+    return `<div class="wrap"><h1 class="code">${esc(App.code)}</h1><p>${why}</p><div class="row">${m || L.members.length >= L.seatsWanted ? '<button class="btn gold" data-a="watch-instead">Watch instead</button>' : ''}<button class="btn alt" data-a="leave-now">Back to home</button></div></div>`;
+  }
+  const full = L.members.length === L.seatsWanted, allOk = L.members.every(x => x.bot || (x.ready && x.audio));
+  const tr = Music.get(p.music.track);
+  const startWhy = !full ? `Waiting for ${L.seatsWanted - L.members.length} more player${L.seatsWanted - L.members.length > 1 ? 's' : ''}. ${App.local ? '' : 'Share the code or add bots.'}` : !allOk ? 'Everyone needs to choose their music and tap Ready.' : 'Everyone is ready.';
+  return foldSections(`<div class="wrap lobby">
+  <div class="row lobhead"><div class="grow">${App.local ? '<h1>Practice table</h1>' : `<div class="note">Room code</div><div class="code">${esc(App.code)}</div>`}</div>
+   <button class="btn alt small" data-a="help" aria-label="How to play">?</button><button class="btn alt small" data-a="leave">Leave</button></div>
+  ${App.local ? '' : `<p class="note">Friends open this page, choose Join room and enter the code. ${H ? (BUILD.web ? 'You are the host: you choose the settings and start the match.' : 'You are the host: the game runs on this device, so keep it open.') : ''}</p>
+   <button class="btn alt small" data-a="copy-code">Copy invite</button>`}
+  <section class="blk"><h2>Players ${L.members.length}/${L.seatsWanted}</h2><ul class="list">
+  ${L.members.map(x => `<li>${avatar(x.uid)}<span class="dot ${x.bot || App.online.has(x.uid) || x.uid === App.uid || App.local ? 'on' : ''}" title="${x.bot ? 'Bot' : App.online.has(x.uid) ? 'Connected' : 'Not connected'}"></span>
+   <span class="grow pname">${esc(x.name)}${x.uid === App.uid ? ' (you)' : ''}${x.uid === p.hostUid ? ' <span class="tagp">Host</span>' : ''}${x.bot && !H ? ` <span class="tagp">🤖 Bot, ${(LEVELS.find(l => l[0] === x.level) || LEVELS[1])[1]}</span>` : ''}</span>
+   ${x.bot && H ? `<span class="tagp" title="Bot">🤖</span><select class="lvl" data-change="botlevel" data-u="${esc(x.uid)}" aria-label="Level for ${esc(x.name)}">${LEVELS.map(([k, l]) => `<option value="${k}" ${x.level === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : ''}
+   ${x.bot ? '' : `<span class="tagp ${x.audio ? 'go' : ''}" title="${x.audio ? 'Music chosen' : 'No music chosen yet'}">♪ ${x.audio ? '✓' : '✗'}</span><span class="tagp ${x.ready ? 'go' : ''}">${x.ready ? 'Ready' : 'Not ready'}</span>`}
+   ${H && x.uid !== App.uid && (x.bot || !x.ready) ? `<button class="btn alt small rm" data-a="remove" data-u="${esc(x.uid)}" aria-label="Remove ${esc(x.name)}">✕</button>` : ''}</li>`).join('')}</ul>
+  ${H ? `<details class="set" data-set="Table settings" ${App.openSets.has('Table settings') ? 'open' : ''}><summary>Table settings</summary><div class="row" style="margin-top:12px"><span>Seats</span><span class="seg">${[4, 5].map(n => `<button data-a="seats" data-n="${n}" aria-pressed="${L.seatsWanted === n}">${n}</button>`).join('')}</span>
+   <button class="btn alt small" data-a="add-bot" ${full ? 'disabled' : ''}>Add a bot</button></div>
+   <div class="row" style="margin-top:10px"><span>Bot thinking time</span><span class="seg"><button data-a="speed" data-k="real" aria-pressed="${L.botSpeed !== 'quick'}">5–15 s</button><button data-a="speed" data-k="quick" aria-pressed="${L.botSpeed === 'quick'}">Quick</button></span></div>
+   ${L.seatsWanted === 5 ? `<div class="row" style="margin-top:10px"><span>Five-player deal</span><span class="seg"><button data-a="mode" data-m="single" aria-pressed="${L.mode === 'single'}">12 to one player</button><button data-a="mode" data-m="split" aria-pressed="${L.mode === 'split'}">11 to two players</button></span></div>` : ''}`
+   : `<p class="note">${L.seatsWanted} seats${L.seatsWanted === 5 ? (L.mode === 'single' ? ', one player gets 12 cards each hand' : ', two players get 11 cards each hand') : ''}.</p>`}
+  <p class="note">Award date timezone: ${esc(L.tz)}. Humans get 90 seconds per move.</p>${H ? '</details>' : ''}
+  ${(L.watchers || []).length ? `<p class="note">👀 Watching: ${L.watchers.map(w => esc(w.name)).join(', ')}</p>` : ''}</section>
+  ${conspiracyHTML(L, H)}
+  <section class="blk"><h2>Series</h2>
+   ${H ? `<div class="row"><span>First to</span><span class="seg">${[2, 3, 5].map(n => `<button data-a="series" data-n="${n}" aria-pressed="${(L.target || 5) === n}">${n}</button>`).join('')}</span><span>Donkey losses</span></div>`
+   : `<p>First to <b>${L.target || 5}</b> Donkey losses becomes Donkey of the Day.</p>`}
+   <p class="note">The series is announced when the match starts and can’t change mid-match.</p></section>
+  <section class="blk"><h2>Donkey names by level</h2>
+   <p class="note">Each loss moves a player up a level and gives them a random name from that level’s list. The player who loses the series gets a level 5 name. The others can swap a name for another or type their own.</p>
+   ${H ? `<div class="row"><span class="seg"><button data-a="titles-on" data-k="1" aria-pressed="${L.titlesOn}">On</button><button data-a="titles-on" data-k="0" aria-pressed="${!L.titlesOn}">Off</button></span></div>
+    ${L.titlesOn ? `<ol class="titles">${L.titles.map((l, i) => `<li><label class="note" for="tl${i}">${i === 4 ? 'Level 5, series loser' : 'Level ' + (i + 1) + ', loss ' + (i + 1)}</label><input id="tl${i}" class="t" data-live="server" data-change="levels" value="${esc(l.join(', '))}"></li>`).join('')}</ol><p class="note">Separate names with commas.</p>` : ''}`
+   : L.titlesOn ? `<ol class="titles">${L.titles.map((l, i) => `<li><span class="note">Level ${i + 1}</span><span>${l.map(esc).join(', ')}</span></li>`).join('')}</ol>` : '<p class="note">Donkey names are off for this room.</p>'}</section>
+  <section class="blk"><h2>Suit names</h2><div class="row">${suitSeg()}</div></section>
+  <section class="blk"><h2>Music</h2><p>Room track: <b>${tr.title}</b>. You hear: <b>${esc(App.musicLabel())}</b></p>
+   <div class="row"><button class="btn alt small" data-a="music">Choose music</button></div></section>
+  <div class="lobbybar"><section class="blk you">
+   <div class="row">${me.audio ? `<span class="tagp go">Music: ${esc(App.musicLabel())}</span>` : '<button class="btn gold" data-a="music">♪ Choose music</button>'}
+   <button class="btn ${me.ready ? 'alt' : ''}" data-a="ready" ${me.audio ? '' : 'disabled'} ${App.pending ? 'disabled' : ''}>${me.ready ? 'Not ready' : 'Ready'}</button><button class="btn alt chatbtn2" data-a="chat">💬 Chat${unreadBadge()}</button></div>
+   ${me.audio ? '' : '<p class="note">Choose your music, then tap Ready.</p>'}
+   </section>
+  ${H ? `<section class="blk startrow"><button class="btn gold" data-a="start" ${full && allOk ? '' : 'disabled'}>Start match</button><span class="note">${startWhy}</span></section>` : `<p class="note" style="margin-top:22px">${startWhy} The host starts the match.</p>`}
+  </div></div>`);
+}
+function foldSections(html) {
+  const parts = []; let first = -1;
+  html = html.replace(/<section class="blk"><h2>([^<]+)<\/h2>([\s\S]*?)<\/section>/g, (all, t, body, off) => {
+    if (/^Players/.test(t)) return all;
+    parts.push(`<section class="sub"><h3>${t}</h3>${body}</section>`); return '\u0000';
+  });
+  const i = html.indexOf('\u0000'); if (i < 0) return html;
+  html = html.replace(/\u0000/g, '');
+  const fold = `<details class="set" data-set="Room settings" ${App.openSets.has('Room settings') ? 'open' : ''}><summary>Room settings</summary>${parts.join('')}</details>`;
+  return html.slice(0, i) + fold + html.slice(i);
+}
+function pipsHTML(n, of) { of = of || (App.pub && App.pub.match && App.pub.match.target) || (App.pub && App.pub.lobby && App.pub.lobby.target) || 5; return `<span class="pips" aria-label="${n} of ${of} losses">${Array.from({ length: of }, (_, i) => i).map(i => `<span class="pip ${i < n ? 'on' : ''}"></span>`).join('')}</span>`; }
+function timerHTML(dl, total) { if (!dl) return ''; return `<div class="timer" data-dl="${dl}" data-total="${total}"><i></i></div><div class="tlabel"></div>`; }
+function seatsOrder(m) { const s = m.seats || m.lobby; const i = s.indexOf(App.uid); return i < 0 ? s : [...s.slice(i + 1), ...s.slice(0, i)]; }
+function shortName(u) { const n = nameOf(u); return n.replace(/^Bot(?=[A-Z])/, ''); }
+function nameOf(u) { const p = App.pub; if (p.match && p.match.names[u]) return p.match.names[u]; const m = (p.lobby.members || []).find(x => x.uid === u); return m ? m.name : 'Player'; }
+
+function gameHTML() {
+  const p = App.pub, m = p.match, others = seatsOrder(m), base = Math.floor(52 / m.n), spect = !m.names[App.uid];
+  const maxL = Math.max(0, ...Object.values(m.losses)); const think = p.lobby.botThinking;
+  const turnU = m.phase === 'TURN' ? m.actor : m.phase === 'DEALING' ? m.seats[m.dealer] : m.phase === 'SEATING_ORDER' ? m.draw.winner : m.phase === 'PAUSED' ? m.pauseFor : null;
+  const seatChip = u => { const i = m.seats ? m.seats.indexOf(u) : -1; const done = m.finished && m.finished[i];
+    const extra = i >= 0 && m.quotas ? m.quotas[i] - base : 0;
+    const cnt = m.counts ? (m.phase === 'DEALING' ? `${m.counts[u]}/${m.quotas[i]}` : `${m.counts[u]} card${m.counts[u] === 1 ? '' : 's'}`) : '';
+    const off = !m.bots[u] && !App.local && !App.online.has(u) && u !== App.uid && Net.nroom;
+    const played = (m.table || []).find(t => m.seats[t.s] === u); const title = m.titleOf && m.titleOf[u];
+    return `<div class="seat ${turnU === u ? 'turn' : ''} ${done ? 'done' : ''}" data-seat="${esc(u)}" data-a="player" data-u="${esc(u)}" role="button" tabindex="0" aria-label="${esc(nameOf(u))}: details and cards played" style="--c:${colorOf(u)}"><div class="nm" title="${esc(nameOf(u))}">${avatar(u)}${off ? '<span class="dot" title="Not connected"></span>' : ''}<span style="overflow:hidden;text-overflow:ellipsis">${esc(shortName(u))}</span>${(m.targets || []).includes(u) ? '<span title="Targeted by the bots" aria-label="Targeted">🎯</span>' : ''}${maxL > 0 && m.losses[u] === maxL ? '<span title="Most losses so far">👑🫏</span>' : ''}</div>
+    ${title ? `<div class="ttl2" title="Level ${(m.levelOf || {})[u] || ''} Donkey: ${esc(title)}"><span class="lvlbadge">L${(m.levelOf || {})[u] || '?'}</span> ${esc(title)}</div>` : ''}
+    <div class="ct">${done ? 'Out' : cnt}${i === m.dealer && m.handNo ? '<span class="badge" title="Dealer">D</span>' : ''}${extra > 0 ? `<span class="badge x" title="Gets ${extra} extra this hand">+${extra}</span>` : ''}${m.bots[u] && m.levels ? `<span class="badge x" title="${(LEVELS.find(l => l[0] === m.levels[u]) || LEVELS[1])[1]} bot">🤖<span class="lvtxt"> ${(LEVELS.find(l => l[0] === m.levels[u]) || LEVELS[1])[1]}</span></span>` : ''}</div>
+    ${pipsHTML(m.losses[u])}${fxHTML(m, u)}${think && think.u === u && m.phase === 'TURN' && m.actor === u ? '<span class="fx think">🤔 thinking</span>' : ''}${historyHTML(m, u, 3)}</div>`; };
+  const tr = Music.get(p.music.track);
+  const myI = m.seats ? m.seats.indexOf(App.uid) : -1;
+  return `<div id="game" class="ph-${m.phase}"><div class="felt">
+   <div class="topbar"><span class="ttl grow">${m.handNo ? 'Hand ' + m.handNo : 'Setting up'} <span class="series" title="Series: first to ${m.target} losses">🏁 to ${m.target}</span></span>
+    ${Net.nroom ? `<span class="reactbar" aria-label="Reactions">${['👏', '😂', '🫏', '😬'].map(e => `<button data-a="react" data-e="${e}" aria-label="Send ${e}">${e}</button>`).join('')}</span>` : ''}
+    <button class="chip mus" data-a="music" aria-label="Music: ${esc(App.musicLabel())}">♪<span class="lbl"> ${esc(App.musicLabel())}</span></button><button class="chip chatchip" data-a="chat" aria-label="Chat">💬<span class="lbl"> Chat</span>${unreadBadge()}</button>
+    <button class="chip" data-a="menu" aria-label="Menu">☰<span class="lbl"> Menu</span></button></div>
+   ${spect ? `<div class="watchbar">👀 You’re watching. Cards stay hidden.</div>` : ''}
+   <div class="seats" style="--cols:${others.length}">${others.map(seatChip).join('')}</div>
+   <div class="dir" aria-hidden="true">${m.seats ? (spect ? 'Play passes clockwise ↻ left to right' : 'Play passes clockwise ↻ left to right, then to you') : ''}</div>
+   <div class="center" aria-live="polite">${bannerHTML(m)}${centerHTML(m)}</div>
+   ${stripHTML(m)}</div>
+   ${spect ? `<div class="me spect"><div class="info"><span>👀</span><b>${esc(App.name || 'Guest')}</b><span class="grow"></span><span class="note">${(p.lobby.watchers || []).length} watching</span></div>
+     <div class="actions"><button class="btn gold" data-a="chat">Chat and tease${unreadBadge()}</button><button class="btn alt" style="color:var(--ink)" data-a="leave">Stop watching</button></div></div>` : `
+   <div class="me" data-seat="${esc(App.uid)}"><div class="info">${avatar(App.uid)}<b>${esc(nameOf(App.uid))}</b>${(m.targets || []).includes(App.uid) ? '<span title="The bots are ganging up on you">🎯</span>' : ''}${m.titleOf && m.titleOf[App.uid] ? `<span class="ttl3">${esc(m.titleOf[App.uid])}</span>` : ''}${myI === m.dealer && m.handNo ? '<span class="badge">D</span>' : ''}${pipsHTML(m.losses[App.uid])}<span class="grow"></span>
+    <span class="note">${m.phase === 'DEALING' ? (m.counts ? m.counts[App.uid] + ' dealt to you so far' : '') : App.hand.length ? App.hand.length + ' cards' : m.finished && m.finished[myI] ? 'You are out this hand' : ''}</span></div>
+    <div class="myhist">${historyHTML(m, App.uid, 12, true)}</div>
+    ${handHTML(m)}${actionsHTML(m)}</div>`}</div>`;
+}
+function ledHigh(m) { let b = null; (m.table || []).forEach(t => { if (t.c[0] === m.led && (!b || Engine.rankOf(t.c) > Engine.rankOf(b.c))) b = t; }); return b; }
+function centerHTML(m) {
+  const T = Engine.T, me = App.uid;
+  switch (m.phase) {
+    case 'SEATING_DRAW': case 'DEALER_DRAW': { const seat = m.phase === 'SEATING_DRAW';
+      return `${seat ? `<div class="seriesban">🏁 Series declared: first to <b>${m.target}</b> Donkey losses</div>` : ''}<h2>${seat ? 'Drawing for seats' : 'Drawing for dealer'}</h2><p class="note" style="color:var(--feltMuted)">${seat ? 'Highest card arranges the seating.' : 'Lowest card deals first. Ace is high.'}</p>
+      ${m.draw.rounds.map((r, k) => `${k ? '<p class="note" style="color:var(--feltMuted)">Tie. The tied players draw again.</p>' : ''}<div class="draws">${Object.entries(r).map(([u, c]) => playedHTML(u, c, '', false)).join('')}</div>`).join('')}
+      <p class="status"><b>${esc(nameOf(m.draw.winner))}</b> ${seat ? 'arranges the seats' : 'deals first'}.</p>`; }
+    case 'SEATING_ORDER': {
+      if (m.draw.winner !== me) return `<h2>Seating</h2><p class="status"><b>${esc(nameOf(m.draw.winner))}</b> is arranging who sits next to whom.</p>${timerHTML(m.deadline, T.seatOrder)}`;
+      if (!App.seatOrder) { const l = m.lobby.slice(); const i = l.indexOf(me); App.seatOrder = [...l.slice(i), ...l.slice(0, i)]; }
+      return `<h2>Arrange the seats</h2><p style="margin:0">You drew highest. Set the clockwise order, starting from you.</p>
+      <ol class="order">${App.seatOrder.map((u, i) => `<li><span>${i + 1}. ${esc(nameOf(u))}${u === me ? ' (you)' : ''}</span>${i > 1 ? `<button data-a="seat-up" data-i="${i}" aria-label="Move ${esc(nameOf(u))} earlier">↑</button>` : ''}${i > 0 && i < App.seatOrder.length - 1 ? `<button data-a="seat-down" data-i="${i}" aria-label="Move ${esc(nameOf(u))} later">↓</button>` : ''}</li>`).join('')}</ol>
+      <button class="btn gold" data-a="seat-confirm" ${App.pending ? 'disabled' : ''}>Confirm seating</button>${timerHTML(m.deadline, T.seatOrder)}`; }
+    case 'DEALING': {
+      const dealerU = m.seats[m.dealer], r = m.dealTo, ru = m.seats[r], left = m.quotas[r] - m.dealt[r];
+      const prog = `<div class="prog">${m.seats.map((u, i) => `<span>${esc(nameOf(u))}</span><span class="bar"><i style="width:${100 * m.dealt[i] / m.quotas[i]}%"></i></span><span>${m.dealt[i]}/${m.quotas[i]}</span>`).join('')}</div>`;
+      if (dealerU !== me) return `<h2>Dealing</h2><p class="status"><b>${esc(nameOf(dealerU))}</b> is dealing to ${esc(nameOf(ru))}. You see your own cards as they arrive.</p>${prog}${timerHTML(m.deadline, T.batch)}`;
+      return `<h2>You’re dealing</h2><p style="margin:0">Next to ${ru === me ? 'you' : '<b>' + esc(nameOf(ru)) + '</b>'}: ${left} card${left > 1 ? 's' : ''} left in their share.</p>
+      <div class="stepper"><button data-a="deal-minus" aria-label="One fewer">−</button><output aria-live="polite">${App.dealCount}</output><button data-a="deal-plus" aria-label="One more">+</button></div>
+      <div class="row" style="justify-content:center"><button class="btn gold" data-a="deal" ${App.pending ? 'disabled' : ''}>Deal ${App.dealCount}</button><button class="btn alt" data-a="deal-all" ${App.pending ? 'disabled' : ''}>Deal all ${left}</button></div>
+      ${prog}${timerHTML(m.deadline, T.batch)}<div class="tlabel">The deal finishes automatically one card at a time if time runs out.</div>`; }
+    case 'TURN': {
+      const hi = ledHigh(m), act = m.actor;
+      const tbl = m.table.length ? `<div class="trick">${m.table.map((t, k) => playedHTML(m.seats[t.s], t.c, k + 1, hi && hi.s === t.s)).join('')}</div>` : '';
+      const head = m.table.length ? `<p style="margin:0">${suitName(m.led)} led. Highest: <b>${short(hi.c)}</b> by ${esc(nameOf(m.seats[hi.s]))}.</p>` : `<p style="margin:0">${m.firstTrick ? 'The Ace of Spades opens.' : 'New trick.'}</p>`;
+      const thinking = m.bots[act];
+      return `${head}${tbl}<p class="status">${act === me ? '<b>Your turn.</b> You have 90 seconds.' : thinking ? '🤔 <b>' + esc(nameOf(act)) + '</b> is thinking…' : 'Waiting for <b>' + esc(nameOf(act)) + '</b>.'}</p>${thinking ? '' : timerHTML(m.deadline, T.turn)}`; }
+    case 'CUT_REVEAL': return oldCutHTML(m.transfer, m) + timerHTML(m.deadline, T.reveal);
+    case 'TRICK_END': { const hi = ledHigh(m), w = m.seats[hi.s];
+      return `<p style="margin:0">Everyone followed ${suitName(m.led)}.</p><div class="trick">${m.table.map((t, k) => playedHTML(m.seats[t.s], t.c, k + 1, t.s === hi.s)).join('')}</div>
+      <p class="status">✅ ${w === me ? '<b>You</b> played' : '<b>' + esc(nameOf(w)) + '</b> played'} highest (${short(hi.c)}) and ${w === me ? 'lead' : 'leads'} next.</p>${timerHTML(m.deadline, Engine.T.trickEnd)}`; }
+    case 'HAND_END': { const r = m.lastResult, fv = m.finalView;
+      return `<h2>Last card played!</h2>
+      ${fv ? (fv.kind === 'cut' ? oldCutHTML({ giver: fv.giver, recipient: fv.recipient, table: fv.cards, cut: fv.cut }, m, true) : `<p style="margin:0">Final trick: everyone followed ${suitName(fv.led)}.</p><div class="trick">${fv.cards.map((t, k) => playedHTML(m.seats[t.s], t.c, k + 1, false)).join('')}</div>`) : ''}
+      <p class="status">🫏 ${r.uid === me ? '<b>You are</b>' : '<b>' + esc(nameOf(r.uid)) + '</b> is'} left holding cards.</p>${timerHTML(m.deadline, Engine.T.handEnd)}<div class="tlabel">Results in a moment…</div>`; }
+    case 'HAND_RESULT': { const r = m.lastResult, humans = m.seats.filter(u => !m.bots[u]), rd = humans.filter(u => m.ready[u]).length;
+      return `<div class="ass" aria-hidden="true">🫏</div><h2>${r.uid === me ? 'You are' : esc(nameOf(r.uid)) + ' is'} the Donkey of hand ${r.handNo}</h2><p class="lvl-line">${m.losses[r.uid]} of ${m.target} losses${r.level ? ` · Level ${r.level} Donkey` : ''}</p><p style="margin:0">${esc(r.reason)} ${esc(nameOf(r.uid))} deals next.</p>${titleBlock(m, r)}
+      ${scoreChips(m)}<button class="btn gold" data-a="next" ${m.ready[me] || App.pending ? 'disabled' : ''}>${m.ready[me] ? 'Waiting for others' : 'Ready for next hand'}</button><div class="tlabel">${rd}/${humans.length} ready</div>${timerHTML(m.deadline, T.ready)}`; }
+    case 'MATCH_RESULT': { const a = m.award;
+      return `<div class="award"><div class="cap">${esc(a.date)} · ${esc(a.tz)}</div><h2>Donkey of the Day</h2><div class="who">${esc(nameOf(a.uid))}</div>${m.titleOf && m.titleOf[a.uid] ? `<div class="rank">${esc(m.titleOf[a.uid])}</div>` : ''}${titleBlock(m, m.lastResult, true)}<div class="cap">${m.target} losses in ${m.handNo} hand${m.handNo === 1 ? "" : "s"}</div>${scoresHTML(false)}<div class="cap">Match ${esc(m.matchId)}</div></div>
+      <div class="row" style="justify-content:center">${App.isHost ? '<button class="btn gold" data-a="rematch">Rematch</button><button class="btn alt" data-a="lobby">Back to lobby</button>' : '<span class="note" style="color:var(--feltMuted)">The host can start a rematch.</span>'}<button class="btn alt" data-a="copy-result">Copy result</button></div>`; }
+    case 'PAUSED': return `<h2>Paused</h2><p>${m.pauseFor === me ? 'Two of your moves were made automatically. Resume to keep playing.' : 'Waiting for <b>' + esc(nameOf(m.pauseFor)) + '</b>. Two of their moves were made automatically.'}</p>${m.pauseFor === me ? '<button class="btn gold" data-a="resume">Resume playing</button>' : ''}${timerHTML(m.deadline, T.pause)}<div class="tlabel">If time runs out, the match ends without an award.</div>`;
+    case 'INCOMPLETE': return `<h2>Match ended</h2><p>${esc(m.incompleteReason || '')} No Donkey of the Day is awarded for an unfinished match. Completed hands stay in the score table.</p>${scoreChips(m)}
+      ${App.isHost ? '<div class="row" style="justify-content:center"><button class="btn gold" data-a="rematch">Rematch</button><button class="btn alt" data-a="lobby">Back to lobby</button></div>' : ''}`;
+  }
+  return '';
+}
+function playedHTML(u, c, ord, hi, compact) {
+  return `<div class="played ${hi ? 'hi' : ''} ${compact ? 'cmp' : ''}" style="--c:${colorOf(u)}">${ord !== '' ? `<span class="ord" aria-label="${ord === 'cut' ? 'Cut card' : 'Played ' + ord}">${ord === 'cut' ? '✂' : ord}</span>` : ''}${cardStatic(c, compact ? 'sm' : 'lg')}<span class="who">${avatar(u)}<span>${u === App.uid ? 'You' : esc(shortName(u))}</span></span>${hi ? '<span class="hitag">Highest</span>' : ''}</div>`;
+}
+function historyHTML(m, u, max, mine) {
+  const h = ((m.playedBy || {})[u] || []); if (!h.length) return mine ? '' : '';
+  const cur = m.trick ? m.trickNo : null; const list = h.slice(-max);
+  return `<div class="hist" aria-label="${mine ? 'You' : esc(nameOf(u))} played">${mine ? '<span class="note">You played</span>' : ''}${h.length > max ? '<span class="more">…</span>' : ''}${list.map(p => `<span class="hcard k-${p.k} ${m.table && m.table.some(t => t.c === p.c) ? 'now' : ''}" title="${p.k === 'cut' ? 'Cut' : p.k === 'lead' ? 'Led' : 'Followed'}: ${cardName(p.c)}">${cardStatic(p.c, 'mini')}</span>`).join('')}</div>`;
+}
+function oldCutHTML(t, m, past) {
+  const me = App.uid, g = m.seats[t.giver], rc = m.seats[t.recipient], all = [...t.table.map(x => x.c), ...t.cut];
+  return `<h2>${g === me ? 'You' : esc(nameOf(g))} cut</h2><p style="margin:0">${rc === me ? '<b>You</b> pick' : '<b>' + esc(nameOf(rc)) + '</b> picks'} up ${all.length} cards: the table pile and ${t.cut.length} ${suitName(t.cut[0][0])}.${past ? '' : ' ' + (g === me ? 'You lead' : esc(nameOf(g)) + ' leads') + ' next.'}</p>
+  <div class="trick" style="max-height:44vh;overflow:auto">${t.table.map((x, k) => playedHTML(m.seats[x.s], x.c, k + 1, x.s === t.recipient)).join('')}${t.cut.map(c => playedHTML(g, c, 'cut', false)).join('')}</div>`;
+}
+function transferHTML(t, m, past) {
+  const g = m.seats[t.giver], rc = m.seats[t.recipient], total = t.table.length + t.cut.length, me = App.uid;
+  const cs = t.cut[0][0];
+  return `<div class="xfer" style="--g:${colorOf(g)};--r:${colorOf(rc)}">
+    <div class="xflow"><span class="xp g">${avatar(g)}<b>${g === me ? 'You' : esc(nameOf(g))}</b><small>cut</small></span>
+      <span class="xarrow" aria-hidden="true"><i></i><em>✂️ ${t.cut.length} ${suitName(cs)} + ${t.table.length} from table</em></span>
+      <span class="xp r">${avatar(rc)}<b>${rc === me ? 'You' : esc(nameOf(rc))}</b><small>picks up ${total}</small></span></div>
+    <p class="xwhy">No ${suitName(t.table[0].c[0])} left, so ${g === me ? 'you' : esc(nameOf(g))} cut. ${rc === me ? 'You' : esc(nameOf(rc))} played the highest ${suitName(t.table[0].c[0], true)}, so ${rc === me ? 'you take' : 'takes'} everything. ${past ? '' : (g === me ? 'You lead' : esc(nameOf(g)) + ' leads') + ' next.'}</p>
+    <div class="xgroups"><div class="xg"><div class="xgh">From the table</div><div class="trick">${t.table.map((x, k) => playedHTML(m.seats[x.s], x.c, k + 1, x.s === t.recipient)).join('')}</div></div>
+    <div class="xg cutg"><div class="xgh">✂️ Cut by ${g === me ? 'you' : esc(nameOf(g))}: ${t.cut.length} ${suitName(cs)}</div><div class="trick">${t.cut.map(c => playedHTML(g, c, 'cut', false)).join('')}</div></div></div></div>`;
+}
+function playerSheetHTML() {
+  const m = App.pub.match, u = App.sheetUid; if (!m || !m.names[u]) return '';
+  const h = (m.playedBy || {})[u] || [], byTrick = {}; h.forEach(p => (byTrick[p.t] = byTrick[p.t] || []).push(p));
+  const r = m.counts ? Engine.estimate(m, App.uid, m.names[App.uid] ? App.hand : []).rows.find(x => x.u === u) : null;
+  const lbl = { lead: 'Led', follow: 'Followed', cut: 'Cut' };
+  return `<div class="row">${avatar(u)}<h2 style="margin:0">${esc(nameOf(u))}</h2></div>
+   <p>${m.losses[u]} of ${m.target} losses${m.titleOf && m.titleOf[u] ? ` · <span class="lvlbadge">L${(m.levelOf || {})[u]}</span> ${esc(m.titleOf[u])}` : ''}${m.counts ? ` · ${m.counts[u]} cards now` : ''}</p>
+   ${r ? `<h3 style="font-size:20px">Chance of having none</h3><div class="row">${Engine.SUITS.map(x => `<span class="rk ${r.pv[x] >= .6 ? 'hot' : r.pv[x] >= .25 ? 'warm' : ''}">${SUITSYM[x]} ${suitName(x).split(' ')[0]} ${r.shown[x] ? '✂️ 100%' : pct(r.pv[x])}</span>`).join('')}</div>` : ''}
+   <h3 style="font-size:20px;margin-top:14px">Played this hand</h3>
+   ${h.length ? Object.entries(byTrick).map(([t, ps]) => `<div class="ev"><span class="note" style="width:64px">Trick ${t}</span>${ps.map(p => `<span class="hl k-${p.k}">${lbl[p.k]} ${cardStatic(p.c, 'mini')}</span>`).join('')}</div>`).join('') : '<p class="note">Nothing yet this hand.</p>'}
+   ${r && r.known.length ? `<p class="note" style="margin-top:10px">Still holding from a pickup: ${r.known.map(short).join(' ')}</p>` : ''}`;
+}
+function titleBlock(m, r, compact) {
+  if (!r || !r.title) return '';
+  const me = App.uid, mine = r.uid === me, seated = !!m.names[me];
+  let h = compact ? '' : `<p class="status" style="margin:4px 0">${mine ? 'You are' : esc(nameOf(r.uid)) + ' is'} now <span class="lvlbadge">L${r.level || '?'}</span> <b>${esc(r.title)}</b></p>`;
+  if (compact) return h;
+  if (mine) h += '<p class="note" style="color:var(--feltMuted);margin:0">The others can rename you.</p>';
+  else if (seated) h += `<div class="row" style="justify-content:center">${(r.titleOptions || []).map(o => `<button class="btn alt small" data-a="crown" data-t="${esc(o)}" ${App.pending ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>
+    <div class="row" style="justify-content:center"><input id="rename" class="t" maxlength="40" placeholder="Or type a name" style="max-width:220px;color:var(--ink)"><button class="btn small" data-a="rename" ${App.pending ? 'disabled' : ''}>Rename</button></div>`;
+  if (r.crownedBy) h += `<p class="note" style="color:var(--feltMuted);margin:0">Named by ${esc(nameOf(r.crownedBy))}</p>`;
+  return h;
+}
+function unreadBadge() { const n = App.chatList().length - App.chatSeen; return n > 0 && !App.chatOpen ? ` <span class="unread">${n > 9 ? '9+' : n}</span>` : ''; }
+function renderChat() {
+  const el = $('#chat'); const show = App.view === 'room' && !!App.pub;
+  el.classList.toggle('hidden', !show); if (!show) return;
+  el.classList.toggle('open', App.chatOpen);
+  const list = App.chatList(); if (App.chatOpen || window.matchMedia('(min-width: 900px)').matches) App.chatSeen = list.length;
+  const box = $('#chatlist'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  box.innerHTML = list.length ? list.map(x => `<div class="cmsg ${x.u === App.uid ? 'mine' : ''}" style="--c:${colorOf(x.u)}"><span class="from">${avatar(x.u)}${x.u === App.uid ? 'You' : esc(nameOf(x.u))}</span><span class="txt">${esc(x.x)}</span></div>`).join('')
+    : `<p class="note">No messages yet. Say hello to the table.</p>`;
+  if (atBottom) box.scrollTop = box.scrollHeight;
+  const tz = $('#teases'), mm = App.pub.match, ppl = mm ? (mm.seats || mm.lobby) : (App.pub.lobby.members || []).map(x => x.uid);
+  if (!ppl.includes(App.teaseTarget)) App.teaseTarget = ppl.find(u => u !== App.uid) || '';
+  tz.innerHTML = `<label class="note" for="teaseto">Tease</label><select id="teaseto" class="lvl" data-change="tease-to">${ppl.filter(u => u !== App.uid).map(u => `<option value="${esc(u)}" ${u === App.teaseTarget ? 'selected' : ''}>${esc(nameOf(u))}</option>`).join('')}</select>
+    <div class="teaserow">${TEASES.map(t => `<button class="chip2" data-a="tease" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>`;
+  document.querySelectorAll('.unread').forEach(u => u.remove());
+  const n = list.length - App.chatSeen;
+  if (n > 0) document.querySelectorAll('[data-a="chat"]').forEach(b => b.insertAdjacentHTML('beforeend', ` <span class="unread">${n > 9 ? '9+' : n}</span>`));
+}
+/* ---------- table story ---------- */
+const EV_ICON = { cut: '✂️', clean: '✅', out: '🏁', donkey: '🫏', auto: '⏱️', crown: '👑' };
+function evAge(e) { return Date.now() - (e.t + App.offset); }
+function who(u) { return u === App.uid ? 'You' : esc(nameOf(u)); }
+function eventText(e) {
+  switch (e.k) {
+    case 'cut': return `${who(e.u)} cut ${e.n} ${suitName(e.suit)} on the ${suitName(e.led)} trick. ${who(e.to)} ${e.to === App.uid ? 'pick' : 'picks'} up ${e.total}.`;
+    case 'clean': return `Everyone followed ${suitName(e.suit)}. ${who(e.u)} played highest (${short(e.c)}) and ${e.u === App.uid ? 'lead' : 'leads'}.`;
+    case 'out': return `${who(e.u)} ${e.u === App.uid ? 'are' : 'is'} out of cards and safe this hand.`;
+    case 'donkey': return `${who(e.u)} ${e.u === App.uid ? 'are' : 'is'} the Donkey: loss ${e.losses}${e.title ? ', now ' + esc(e.title) : ''}.`;
+    case 'auto': return `${who(e.u)} ran out of time, so a move was made automatically.`;
+    case 'crown': return `${who(e.u)} crowned ${who(e.to)} as ${esc(e.title)}.`;
+  }
+  return '';
+}
+function evRow(e) {
+  return `<div class="ev ev-${e.k}"><span class="evi" aria-hidden="true">${EV_ICON[e.k] || '•'}</span>${avatar(e.u)}${e.to ? '<span class="arrow" aria-hidden="true">→</span>' + avatar(e.to) : ''}<span class="evt">${eventText(e)}</span>${e.k === 'cut' ? `<span class="evcards">${e.cards.map(c => cardStatic(c, 'mini')).join('')}</span>` : ''}</div>`;
+}
+function stripHTML(m) {
+  const evs = (m.events || []).filter(e => e.h === m.handNo).slice(-6).reverse();
+  return `<div class="strip"><button class="chip" data-a="tracker">📋 Tracker</button><button class="chip" data-a="story">📜 Story</button>
+  <div class="stripevs" aria-label="Recent events">${evs.map(e => `<span class="sev" style="--c:${colorOf(e.u)}" title="${eventText(e).replace(/<[^>]+>/g, '')}">${EV_ICON[e.k]}${avatar(e.u)}${e.k === 'cut' ? `<b>+${e.total}</b>${avatar(e.to)}` : ''}</span>`).join('') || '<span class="note" style="color:var(--feltMuted)">Events of this hand appear here.</span>'}</div></div>`;
+}
+function bannerHTML(m) {
+  if (!['TURN', 'CUT_REVEAL'].includes(m.phase)) return '';
+  const e = (m.events || []).slice(-1)[0]; if (!e || e.h !== m.handNo || evAge(e) > 7000 || !['cut', 'out', 'clean'].includes(e.k)) return '';
+  if (m.phase === 'CUT_REVEAL' && e.k === 'cut') return '';
+  const age = Math.max(0, evAge(e));
+  return `<div class="banner b-${e.k}" style="animation-delay:-${age}ms;--c:${colorOf(e.u)}"><span class="bi" aria-hidden="true">${EV_ICON[e.k]}</span>${avatar(e.u)}${e.to ? '<span class="arrow">→</span>' + avatar(e.to) : ''}<span>${eventText(e)}</span></div>`;
+}
+function fxHTML(m, u) {
+  const evs = (m.events || []).filter(e => e.h === m.handNo && evAge(e) < 6000 && (e.u === u || e.to === u)).slice(-1);
+  return evs.map(e => { const age = Math.max(0, evAge(e)); let t = '';
+    if (e.k === 'cut' && e.to === u) t = `📦 +${e.total}`; else if (e.k === 'cut') t = `✂️ ${e.n}`; else if (e.k === 'out') t = '🏁 Safe'; else if (e.k === 'auto') t = '⏱️ Auto'; else if (e.k === 'clean') t = '✅ Leads';
+    return t ? `<span class="fx fx-${e.k}${e.to === u ? '-to' : ''}" style="animation-delay:-${age}ms">${t}</span>` : ''; }).join('');
+}
+function storyHTML() {
+  const m = App.pub.match, evs = (m.events || []).slice().reverse();
+  if (!evs.length) return '<p class="note">Cuts, pickups and escapes appear here as they happen.</p>';
+  let h = '', last = null;
+  evs.forEach(e => { if (e.h !== last) { h += `<h3 style="font-size:20px;margin-top:12px">Hand ${e.h}</h3>`; last = e.h; } h += evRow(e); });
+  return `<div class="story">${h}</div>`;
+}
+
+/* ---------- tracker: what everyone could be holding ---------- */
+function trackerData(m) { return Engine.estimate(m, App.uid, m.names[App.uid] ? App.hand : []); }
+const pct = p => Math.round(p * 100) + '%';
+const RK = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' }; const rk = r => RK[r] || String(r);
+function riskHTML(m) {
+  if (m.phase !== 'TURN' || !m.table.length || !m.trick) return '';
+  const d = trackerData(m), rest = m.trick.order.slice(m.trick.pos + 1).map(i => m.seats[i]);
+  const items = rest.map(u => { const r = d.rows.find(x => x.u === u); return r ? { u, p: r.pv[m.led] } : null; }).filter(Boolean);
+  if (!items.length) return '<div class="risk">You play last in this trick, so nobody can cut after you.</div>';
+  return `<div class="risk">Could cut after you: ${items.map(x => `<span class="rk ${x.p >= .6 ? 'hot' : x.p >= .25 ? 'warm' : ''}">${avatar(x.u)}${esc(nameOf(x.u))} ${pct(x.p)}</span>`).join('')}</div>`;
+}
+function checklist(m, d) {
+  const out = [], mine = App.hand, S = Engine.SUITS;
+  if ((m.targets || []).length) out.push(['🎯', `Pro bots are ganging up on ${m.targets.map(who).join(' and ')}.`]);
+  S.forEach(x => { const my = mine.filter(c => c[0] === x); if (!my.length) return;
+    if (d.otherCount[x] === 0) out.push(['⚠️', `Nobody else has any ${suitName(x)}. If you lead it, the next player cuts onto you.`]);
+    else { const myTop = Math.max(...my.map(Engine.rankOf)); if (myTop > d.top[x]) out.push(['👑', `You hold the top ${suitName(x, true)} still in play (${rk(myTop)}). Playing it makes you the pickup target if someone is out of ${suitName(x)}.`]); } });
+  d.rows.forEach(r => { const sh = Object.keys(r.shown); if (sh.length) out.push(['✂️', `${who(r.u)} has shown no ${sh.map(x => suitName(x)).join(' or ')} by cutting.`]);
+    S.filter(x => !r.shown[x] && r.pv[x] >= .6).forEach(x => out.push(['🔎', `${who(r.u)} is probably out of ${suitName(x)} (${pct(r.pv[x])}).`])); });
+  d.rows.filter(r => r.count <= 2).forEach(r => out.push(['🏁', `${who(r.u)} has ${r.count} card${r.count === 1 ? '' : 's'} left and may escape soon.`]));
+  d.rows.filter(r => r.known.length).forEach(r => out.push(['📦', `${who(r.u)} still holds ${r.known.map(short).join(' ')} from a pickup.`]));
+  const most = d.rows.reduce((a, r) => Math.max(a, r.count), 0); if (mine.length > most && mine.length) out.push(['🫏', `You hold the most cards (${mine.length}). Shed high cards whenever nobody can cut after you.`]);
+  return out;
+}
+function trackerHTML() {
+  const m = App.pub.match;
+  if (!m || !m.counts || !['TURN', 'CUT_REVEAL'].includes(m.phase)) return '<p class="note">The tracker fills in once cards are being played.</p>';
+  const d = trackerData(m), S = Engine.SUITS;
+  const cell = (r, x) => { const p = r.pv[x]; const cls = r.shown[x] ? 'sure' : p >= .6 ? 'hot' : p >= .25 ? 'warm' : 'cool';
+    return `<td class="pv ${cls}" title="${who(r.u)}: chance of having no ${suitName(x)}${r.why[x] === 'pattern' ? ', raised from ' + pct(r.base[x]) + ' by their play pattern' : ''}">${r.shown[x] ? '✂️ 100%' : pct(p)}${r.why[x] === 'pattern' ? '<sup>↑</sup>' : ''}</td>`; };
+  const pats = [];
+  d.rows.forEach(r => { Engine.SUITS.forEach(x => { if (r.why[x] !== 'pattern') return;
+      const led = ((m.ledBy || {})[r.u] || {})[x] || 0, cutw = ((m.cutWith || {})[r.u] || {})[x] || 0, hi = ((m.highBy || {})[r.u] || {})[x] || 0;
+      pats.push(`${who(r.u)} has ${[led ? `led ${suitName(x)} ${led === 1 ? 'once' : led + ' times'}` : '', cutw ? `cut with ${suitName(x)}` : '', hi ? `thrown a high ${suitName(x, true)} they didn’t need to (so they kept small ones or are about to run out)` : ''].filter(Boolean).join(' and ')} this hand. People usually shed the suits they hold few of, so the chance they have none goes from ${pct(r.base[x])} to <b>${pct(r.pv[x])}</b>.`); });
+    const sty = (m.style || {})[r.u]; if (sty && sty.hi >= 2) pats.push(`${who(r.u)}’s high-card habit: ${sty.hiCut || 0} of ${sty.hi} suits where they threw a high card were later cut. The tracker trusts this signal ${r.hw >= .5 ? 'a lot' : r.hw >= .25 ? 'somewhat' : 'only a little'} for them.`);
+    if (sty && sty.led >= 2) pats.push(`${who(r.u)}’s habit this match: later cut on ${sty.shed} of the ${sty.led} suits they led (pattern weight ×${r.lam.toFixed(1)}).`); });
+  const cl = checklist(m, d);
+  return `<p class="note">Each figure is the chance that a player has <b>no</b> cards of that suit, so they would cut if it’s led. Worked out from your hand, everything played, cuts shown and cards picked up in the open, then adjusted (marked ↑) by how each player has been leading and cutting. Estimates, not certainties.</p>
+  <div style="overflow-x:auto"><table class="trk"><thead><tr><th>Player</th><th>Cards</th>${S.map(x => `<th>${SUITSYM[x]}<br><span class="note">${suitName(x).split(' ')[0]}</span></th>`).join('')}</tr></thead>
+  <tbody>${d.rows.map(r => `<tr><td>${avatar(r.u)} ${who(r.u)}</td><td>${r.count}${r.known.length ? `<div class="kn">${r.known.map(c => cardStatic(c, 'mini')).join('')}</div>` : ''}</td>${S.map(x => cell(r, x)).join('')}</tr>`).join('')}</tbody></table></div>
+  ${riskHTML(m) ? `<h3 style="font-size:20px;margin-top:14px">This trick</h3>${riskHTML(m)}` : ''}
+  ${pats.length ? `<h3 style="font-size:20px;margin-top:14px">Patterns spotted</h3><ul class="check">${pats.map(t => `<li><span aria-hidden="true">🧠</span><span>${t}</span></li>`).join('')}</ul>` : ''}
+  <h3 style="font-size:20px;margin-top:14px">Worth remembering</h3>
+  <ul class="check">${cl.length ? cl.map(([i, t]) => `<li><span aria-hidden="true">${i}</span><span>${t}</span></li>`).join('') : '<li><span>•</span><span>Nothing stands out yet. Watch for the first cut.</span></li>'}</ul>
+  <h3 style="font-size:20px;margin-top:14px">Cards still out, by suit</h3>
+  <p class="note">${S.map(x => `${SUITSYM[x]} ${suitName(x).split(' ')[0]}: ${d.otherCount[x]} with others${d.top[x] ? ', highest ' + rk(d.top[x]) : ''}`).join('<br>')}</p>`;
+}
+function conspiracyHTML(L, H) {
+  const pros = L.members.filter(x => x.bot && x.level === 'pro').length, T = L.targets || [];
+  if (!H) return T.length ? `<section class="blk"><h2>Bot conspiracy</h2><p>🎯 Pro bots are ganging up on <b>${T.map(u => esc(nameOf(u))).join(', ')}</b>.${L.hints ? ' Everyone else gets whispered hints.' : ''}</p></section>` : '';
+  return `<section class="blk"><h2>Bot conspiracy</h2><p class="note">Pro bots team up against the players you pick. They share what the targets hold, steer pickups onto them and go easy on everyone else. Targets are shown to the whole table.</p>
+  <ul class="list">${L.members.map(x => `<li>${avatar(x.uid)}<span class="grow">${esc(x.name)}${x.uid === App.uid ? ' (you)' : ''}</span><button class="btn small ${T.includes(x.uid) ? 'gold' : 'alt'}" data-a="target" data-u="${esc(x.uid)}" aria-pressed="${T.includes(x.uid)}">${T.includes(x.uid) ? '🎯 Target' : 'Make target'}</button></li>`).join('')}</ul>
+  <div class="row" style="margin-top:10px"><span>Whisper hints to everyone else</span><span class="seg"><button data-a="hints" data-k="1" aria-pressed="${L.hints}">On</button><button data-a="hints" data-k="0" aria-pressed="${!L.hints}">Off</button></span></div>
+  ${T.length && !pros ? '<p class="err">No bot is set to Pro, so nobody is conspiring yet.</p>' : ''}</section>`;
+}
+function scoreChips(m) {
+  const rows = (m.seats || m.lobby).slice().sort((a, b) => m.losses[b] - m.losses[a]);
+  return `<div class="scorechips" aria-label="Losses">${rows.map(u => `<span class="sc">${avatar(u)}${u === App.uid ? 'You' : esc(shortName(u))} <b>${m.losses[u]}</b></span>`).join('')}</div>`;
+}
+function scoresHTML(full) {
+  const m = App.pub.match; if (!m) return '';
+  const rows = (m.seats || m.lobby).slice().sort((a, b) => m.losses[b] - m.losses[a]);
+  return `<table class="scores"><thead><tr><th>Player</th><th>Losses</th></tr></thead><tbody>${rows.map(u => `<tr><td>${esc(nameOf(u))}</td><td>${m.losses[u]}</td></tr>`).join('')}</tbody></table>
+  ${full && m.history.length ? `<h3 style="font-size:20px;margin-top:14px">Hand by hand</h3><ol>${m.history.map(h => `<li>Hand ${h.handNo}: ${esc(nameOf(h.uid))}</li>`).join('')}</ol>` : ''}
+  ${full ? `<h3 style="font-size:20px;margin-top:14px">Recent events</h3><ul>${m.log.slice().reverse().map(l => `<li>${fmtLog(l)}</li>`).join('')}</ul>` : ''}`;
+}
+function myTurnInfo(m) {
+  if (m.phase !== 'TURN' || m.actor !== App.uid) return null;
+  const h = App.hand;
+  if (!m.table.length) return { lead: true, legal: m.firstTrick ? ['S_A'] : h.slice() };
+  const f = h.filter(c => c[0] === m.led); return f.length ? { legal: f } : { cut: true, legal: h.slice() };
+}
+function handHTML(m) {
+  if (m.phase === 'DEALING') { let pv = null; return `<div class="hand" role="group" aria-label="Cards dealt to you so far">${App.hand.map(c => { const gap = pv && pv !== c[0] ? '<span class="gap"></span>' : ''; pv = c[0]; return gap + cardStatic(c); }).join('') || '<span class="note" style="padding:20px 0">Your cards appear here as they’re dealt.</span>'}</div>`; }
+  const info = myTurnInfo(m); let prev = null;
+  return `<div class="hand" role="group" aria-label="Your hand">${App.hand.map(c => { const gap = prev && prev !== c[0] ? '<span class="gap"></span>' : ''; prev = c[0];
+    const dim = info && !info.legal.includes(c); return gap + cardHTML(c, dim ? 'dim' : '', `aria-pressed="${App.sel.includes(c)}"`); }).join('')}</div>`;
+}
+function actionsHTML(m) {
+  const info = myTurnInfo(m); if (!info) return '';
+  return (info.cut ? '' : riskHTML(m)) + (App.hint ? `<div class="whisper" role="note">🤫 ${fmtLog(App.hint)}</div>` : '') + actionsCore(m, info);
+}
+function actionsCore(m, info) {
+  const sel = App.sel, busy = !!App.pending;
+  if (info.cut) {
+    const hi = ledHigh(m), rec = nameOf(m.seats[hi.s]), s = sel[0] && sel[0][0];
+    const suits = [...new Set(App.hand.map(c => c[0]))];
+    return `<div class="actions cutbar"><div class="msg">✂️ No ${suitName(m.led)}: cut cards of one suit to <b>${esc(rec)}</b> (highest ${suitName(m.led, true)}).</div>
+    ${suits.map(x => `<button class="btn alt small" style="color:var(--ink)" data-a="cut-all" data-s="${x}" aria-label="Select all ${suitName(x)}">All ${SUITSYM[x]}</button>`).join('')}
+    ${sel.length ? '<button class="btn alt small" style="color:var(--ink)" data-a="clear">Clear</button>' : ''}<button class="btn gold" data-a="cut" ${sel.length && !busy ? '' : 'disabled'} aria-label="${sel.length ? `Give ${sel.length} ${suitName(s)}` : 'Select cards to give'}">${sel.length ? `Give ${sel.length} ${SUITSYM[s]}` : 'Select cards'}</button></div>`;
+  }
+  const c = sel[0], ok = c && info.legal.includes(c);
+  const why = c && !ok ? (m.table.length ? `You still have ${suitName(m.led)}.` : 'Open with the Ace of Spades.') : (info.lead ? (m.firstTrick ? 'Play the Ace of Spades to open.' : 'You lead. Play any card.') : `Follow ${suitName(m.led)}.`);
+  return `<div class="actions"><div class="msg ${c && !ok ? 'err' : ''}">${why}</div><button class="btn gold" data-a="play" ${ok && !busy ? '' : 'disabled'}>${c ? 'Play ' + short(c) : 'Select a card'}</button></div>`;
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const cardEl = e.target.closest('.hand [data-card]');
+  if (cardEl) { const c = cardEl.dataset.card, m = App.pub && App.pub.match, info = m && myTurnInfo(m); if (!info) return;
+    if (info.cut) { if (App.sel.length && App.sel[0][0] !== c[0]) App.sel = [c]; else App.sel = App.sel.includes(c) ? App.sel.filter(x => x !== c) : [...App.sel, c]; }
+    else App.sel = App.sel[0] === c ? [] : [c];
+    App.render(); return; }
+  const b = e.target.closest('[data-a]'); if (!b) { if (e.target.id === 'sheet') App.closeSheet(); return; }
+  const a = b.dataset.a, m = App.pub && App.pub.match;
+  switch (a) {
+    case 'create': App.createRoom(); break;
+    case 'join': App.joinRoom($('#code').value); break;
+    case 'rejoin': { const l = LS.get('dotd-last'); if ($('#nm') && !$('#nm').value) $('#nm').value = l.name || ''; App.joinRoom(l.code); break; }
+    case 'practice': App.startPractice(+b.dataset.n); break;
+    case 'plevel': App.practiceLevel = b.dataset.k; LS.set('dotd-botlevel', App.practiceLevel); App.render(); break;
+    case 'suits': App.suitMode = b.dataset.k; LS.set('dotd-suits', App.suitMode); App.render(); if (App.sheet) App.renderSheet(); break;
+    case 'pick-src': App.setMusic({ src: b.dataset.src }); break;
+    case 'set-synth': App.send('SET_MUSIC', { track: b.dataset.t }); setTimeout(() => App.renderSheet(), 80); break;
+    case 'set-song': App.send('SET_MUSIC', { song: { id: b.dataset.id, title: b.dataset.t } }); setTimeout(() => App.renderSheet(), 80); break;
+    case 'watch': App.joinRoom($('#code').value, true); break;
+    case 'watch-instead': App.joinRoom(App.code, true); break;
+    case 'speed': App.send('SET_BOT_SPEED', { speed: b.dataset.k }); break;
+    case 'series': App.send('SET_TARGET', { n: +b.dataset.n }); break;
+    case 'player': App.sheetUid = b.dataset.u; App.openSheet('player'); break;
+    case 'rename': { const v = $('#rename') && $('#rename').value; App.send('CROWN', { name: v }); break; }
+    case 'tease': { const t = App.teaseTarget, line = b.dataset.t; App.sendChat((t ? '@' + nameOf(t) + ' ' : '') + line); break; }
+    case 'chat': App.chatOpen = !App.chatOpen; renderChat(); if (App.chatOpen) setTimeout(() => $('#chatin').focus(), 50); App.render(); break;
+    case 'chat-close': App.chatOpen = false; renderChat(); App.render(); break;
+    case 'chat-send': App.sendChat($('#chatin').value); $('#chatin').value = ''; break;
+    case 'titles-on': App.send('SET_TITLES', { on: b.dataset.k === '1' }); break;
+    case 'crown': App.send('CROWN', { name: b.dataset.t }); break;
+    case 'tracker': App.openSheet('tracker'); break;
+    case 'story': App.openSheet('story'); break;
+    case 'target': { const L = App.pub.lobby, u = b.dataset.u; const t = L.targets.includes(u) ? L.targets.filter(x => x !== u) : [...L.targets, u]; App.send('SET_CONSPIRACY', { targets: t }); break; }
+    case 'hints': App.send('SET_CONSPIRACY', { hints: b.dataset.k === '1' }); break;
+    case 'help': App.openSheet('help'); break;
+    case 'menu': App.openSheet('menu'); break;
+    case 'music': App.openSheet('music'); break;
+    case 'scores': App.openSheet('scores'); break;
+    case 'leave': App.openSheet('leave'); break;
+    case 'close-sheet': App.closeSheet(); break;
+    case 'leave-now': App.leave(); break;
+    case 'end-match': App.closeSheet(); App.send('END_MATCH'); break;
+    case 'copy-code': try { await navigator.clipboard.writeText(BUILD.web ? `Join my Donkey of the Day room: ${location.origin}/?room=${App.code}` : `Join my Donkey of the Day room. Open the game page, choose Join room and enter ${App.code}.`); App.toast('Invite copied.'); } catch (x) { App.toast('Room code: ' + App.code); } break;
+    case 'audio': App.enableAudio(); break;
+    case 'mute': Music.muted = !Music.muted; Music.applyVol(); App.renderSheet(); App.render(); break;
+    case 'track': App.send(App.isHost ? 'SELECT_TRACK' : 'PROPOSE_TRACK', { track: b.dataset.t }); if (!App.isHost) App.toast('Suggested to the host.'); setTimeout(() => App.renderSheet(), 50); break;
+    case 'ready': { const me = App.pub.lobby.members.find(x => x.uid === App.uid); App.send('SET_LOBBY', { ready: !me.ready }); break; }
+    case 'seats': App.send('SET_SEATS', { n: +b.dataset.n }); break;
+    case 'mode': App.send('SET_MODE', { mode: b.dataset.m }); break;
+    case 'add-bot': App.send('ADD_BOT'); break;
+    case 'remove': App.send('REMOVE', { uid: b.dataset.u }); break;
+    case 'start': App.send('START'); break;
+    case 'seat-up': case 'seat-down': { const i = +b.dataset.i, j = a === 'seat-up' ? i - 1 : i + 1, o = App.seatOrder; [o[i], o[j]] = [o[j], o[i]]; App.render(); break; }
+    case 'seat-confirm': App.send('SET_SEAT_ORDER', { order: App.seatOrder }); break;
+    case 'deal-minus': App.dealCount = Math.max(1, App.dealCount - 1); App.render(); break;
+    case 'deal-plus': { const r = m.dealTo; App.dealCount = Math.min(m.quotas[r] - m.dealt[r], App.dealCount + 1); App.render(); break; }
+    case 'deal': App.send('DEAL_BATCH', { count: App.dealCount }); break;
+    case 'deal-all': { const r = m.dealTo; App.send('DEAL_BATCH', { count: m.quotas[r] - m.dealt[r] }); break; }
+    case 'play': { const c = App.sel[0]; App.sel = []; App.send('PLAY_CARD', { card: c }); break; }
+    case 'cut': { const cs = App.sel.slice(); App.sel = []; App.send('CUT_CARDS', { cards: cs }); break; }
+    case 'cut-all': App.sel = App.hand.filter(c => c[0] === b.dataset.s); App.render(); break;
+    case 'clear': App.sel = []; App.render(); break;
+    case 'next': App.send('READY_NEXT_HAND'); break;
+    case 'resume': App.send('RESUME'); break;
+    case 'rematch': App.send('REMATCH'); break;
+    case 'lobby': App.send('BACK_TO_LOBBY'); break;
+    case 'react': Net.emit('react', { e: b.dataset.e }); break;
+    case 'copy-result': { const a2 = m.award, rows = m.seats.map(u => `${nameOf(u)} ${m.losses[u]}`).join(', ');
+      const t = `Donkey of the Day: ${nameOf(a2.uid)}${m.titleOf && m.titleOf[a2.uid] ? ' (' + m.titleOf[a2.uid] + ')' : ''}, ${m.target} losses, ${a2.date} (${a2.tz}). Final losses: ${rows}.`;
+      try { await navigator.clipboard.writeText(t); App.toast('Result copied.'); } catch (x) { App.toast(t); } break; }
+  }
+});
+document.addEventListener('input', e => { if (e.target.id === 'vol') { Music.vol = +e.target.value; Music.applyVol(); } if (e.target.id === 'nm') App.name = e.target.value; });
+document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.set) { if (d.open) App.openSets.add(d.dataset.set); else App.openSets.delete(d.dataset.set); } }, true);
+document.addEventListener('change', e => {
+  const t = e.target, k = t.dataset && t.dataset.change; if (!k) return;
+  if (k === 'plevel') { App.practiceLevel = t.value; LS.set('dotd-botlevel', t.value); }
+  if (k === 'song') { App.addSong(t.files && t.files[0]); t.value = ''; }
+  if (k === 'tease-to') App.teaseTarget = t.value;
+  if (k === 'levels') App.send('SET_TITLES', { levels: [0, 1, 2, 3, 4].map(i => document.getElementById('tl' + i).value) });
+  if (k === 'botlevel') App.send('SET_BOT_LEVEL', { uid: t.dataset.u, level: t.value });
+  if (k === 'title') App.send('SET_TITLES', { titles: [0, 1, 2, 3, 4].map(i => document.getElementById('tt' + i).value) });
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('seat')) { e.preventDefault(); e.target.click(); return; }
+  if (e.key === 'Enter' && e.target.id === 'chatin') { App.sendChat(e.target.value); e.target.value = ''; return; } if (e.key === 'Escape' && App.sheet) App.closeSheet(); if (e.key === 'Enter' && e.target.id === 'code') App.joinRoom(e.target.value); });
+let rzT = null; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (App.view === 'room') App.render(); }, 150); });
+
+/* ---------- Web build: talk to our own game server over Socket.IO ---------- */
+(function () {
+  const ident = (() => {
+    let id = LS.get('dotd-web-id');
+    if (!id || !id.uid || !id.secret) {
+      const r = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('');
+      id = { uid: 'u-' + r(8), secret: r(24) }; LS.set('dotd-web-id', id);
+    }
+    return id;
+  })();
+  let socket = null, autoTried = false;
+  const want = new URLSearchParams(location.search).get('room');
+
+  Object.assign(Net, {
+    uid: ident.uid, canWrite: true, nroom: null, connected: false,
+    async init() {
+      socket = io({ auth: { uid: ident.uid, secret: ident.secret }, transports: ['websocket', 'polling'] });
+      socket.on('connect', () => {
+        this.connected = true; this.nroom = true;
+        if (App.code && !App.local && App.view === 'room') App.rejoin();
+        else if (!autoTried) { autoTried = true; const last = LS.get('dotd-last');
+          // a reload or reopened invite link puts you straight back in your seat
+          if (want && last && last.code === want.toUpperCase() && last.name) { App.name = last.name; App.render(); App.joinRoom(want, !!last.watch); return; } }
+        App.render(); });
+      socket.on('disconnect', () => { this.connected = false; App.render(); });
+      socket.on('connect_error', e => { this.connected = false; if (e && e.message === 'BAD_IDENTITY') { localStorage.removeItem('dotd-web-id'); } App.render(); });
+      socket.on('state', m => App.onWebState(m));
+      socket.on('chat', list => { App.chatDocs = { server: { msgs: list } }; renderChat(); });
+      socket.on('songs', songs => { App.songs = songs || {}; if (App.sheet === 'music') App.renderSheet(); });
+      socket.on('presence', uids => { App.online = new Set(uids); App.render(); });
+      socket.on('react', m => App.showReaction(m.by, m.e));
+      socket.on('kicked', () => { App.toast('The host removed you from this room.'); });
+      this.ready = true;
+    },
+    online() { return this.connected; },
+    canWatch() { return this.connected; },
+    emit(t, d) { if (socket && t === 'react') socket.emit('react', d && d.e); },
+    stop() {},
+    call(ev, data) { return new Promise(res => { if (!socket || !socket.connected) return res({ error: 'OFFLINE' }); socket.timeout(10000).emit(ev, data, (err, r) => res(err ? { error: 'TIMEOUT' } : (r || {}))); }); }
+  });
+
+  const ERR = { NO_ROOM: 'No room uses that code. Check it with your host.', OFFLINE: 'Not connected to the game server. Check your internet and try again.', TIMEOUT: 'The server took too long to answer. Try again.', TOO_MANY_ROOMS: 'The server is full right now. Try again in a while.' };
+
+  Object.assign(App, {
+    async createRoom() {
+      if (!this.setName() || this.joining) return; this.joining = true; this.render();
+      const r = await Net.call('create', { name: this.name });
+      this.joining = false;
+      if (r.error) { this.homeMsg = ERR[r.error] || 'Couldn’t create the room.'; return this.render(); }
+      this.local = false; this.watching = false; this.code = r.code; this.pub = null; this.view = 'room';
+      LS.set('dotd-last', { code: r.code, name: this.name, watch: false }); history.replaceState(null, '', '?room=' + r.code); this.render();
+    },
+    async joinRoom(code, watch) {
+      if (!this.setName() || this.joining) return; code = (code || '').toUpperCase().replace(/[^A-Z]/g, '');
+      if (code.length !== 5) { this.homeMsg = 'Room codes have five letters.'; return this.render(); }
+      this.joining = true; this.render();
+      const r = await Net.call('join', { code, name: this.name, watch: !!watch });
+      this.joining = false;
+      if (r.error) { this.homeMsg = ERR[r.error] || 'Couldn’t join that room.'; return this.render(); }
+      this.local = false; this.watching = !!watch; this.code = code; this.pub = null; this.view = 'room';
+      LS.set('dotd-last', { code, name: this.name, watch: !!watch }); history.replaceState(null, '', '?room=' + code); this.render();
+    },
+    rejoin() { Net.call('join', { code: this.code, name: this.name, watch: this.watching }); },
+    async leave() {
+      this.closeSheet();
+      if (this.host) this.host.timers.forEach(clearTimeout);
+      if (!this.local) await Net.call('leave', {});
+      Music.stop(); this.musicKey = ''; this.chatOpen = false; this.chatDocs = {}; this.localChat = []; renderChat();
+      Object.assign(this, { watching: false, view: 'home', host: null, isHost: false, local: false, pub: null, hand: [], sel: [], pending: null, code: null, seatOrder: null });
+      history.replaceState(null, '', location.pathname); this.render();
+    },
+    send(type, payload = {}) {
+      if (this.host) { const r = this.host.act(this.uid, { type, payload }); if (r) this.toast(REASONS[r] || r); return; }
+      if (this.pending) return;
+      this.pending = { id: Date.now(), at: Date.now(), tries: 99 }; this.render();
+      Net.call('act', { type, payload }).then(r => { this.pending = null; if (r.error || r.reason) this.toast(REASONS[r.reason] || ERR[r.error] || 'That move was not accepted.'); this.render(); });
+    },
+    onWebState(m) {
+      const doc = m.doc; if (!doc || (this.code && doc.code !== this.code)) return;
+      if (this.pub && doc.seq < this.pub.seq && doc.hostUid === this.pub.hostUid) return;
+      this.pub = doc; this.hand = m.hand || []; this.hint = m.hint || null;
+      this.isHost = doc.hostUid === this.uid; this.lastRecv = Date.now(); this.offset = Date.now() - doc.writtenAt;
+      this.afterPub();
+    },
+    sendChat(text) {
+      text = String(text || '').trim().slice(0, 240); if (!text) return;
+      if (this.local) { this.localChat.push({ u: this.uid, t: Date.now(), x: text }); renderChat(); return; }
+      Net.call('chat', text).then(r => { if (r.error) this.toast('Message not sent.'); });
+      this.chatSeen = this.chatList().length + 1;
+    },
+    async addSong(file) {
+      if (!file) return; if (file.size > 20e6) { this.toast('That file is over 20 MB. Pick a shorter song.'); return; }
+      const title = file.name.replace(/\.[^.]+$/, '').slice(0, 60) || 'My song';
+      if (this.local) { this.localSongs.push({ id: 'local-' + Math.random().toString(36).slice(2, 9), title, url: URL.createObjectURL(file) }); this.toast('Added “' + title + '”.'); this.renderSheet(); return; }
+      this.clipJob = { msg: 'Uploading…' }; this.renderSheet();
+      try {
+        const q = new URLSearchParams({ room: this.code, uid: Net.uid, secret: LS.get('dotd-web-id').secret, title });
+        const res = await fetch('/api/song?' + q, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error || 'UPLOAD');
+        this.toast('Added “' + title + '” for the whole room.');
+      } catch (e) { this.toast(e.message === 'TYPE' ? 'That file type isn’t supported. Try MP3 or M4A.' : e.message === 'FULL' ? 'This room already has the maximum number of songs.' : 'Upload failed. Try again.'); }
+      this.clipJob = null; this.renderSheet();
+    },
+    botSay() {}
+  });
+
+  // open straight into a room from an invite link: /?room=ABCDE
+  if (want) { const t = setInterval(() => { const el = document.getElementById('code'); if (el) { el.value = want.toUpperCase(); clearInterval(t); } }, 100); setTimeout(() => clearInterval(t), 5000); }
+})();
+
+App.boot();
+</script>
+</body>
+</html>
