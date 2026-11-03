@@ -358,7 +358,14 @@ const App = {
     document.body.classList.toggle('ingame', !!root.querySelector('#game'));
     renderChat();
     if (this.sheet && this.sheet !== 'menu' && this.sheet !== 'leave' && this.sheet !== 'help' && this.sheet !== 'profile') this.renderSheet();
-    this.tickUI();
+    this.tickUI(); this.fitHand();
+  },
+  /* spread the cards across the available width (all 13 visible on a phone), instead of a sideways scrollbar */
+  fitHand() {
+    const h = document.querySelector('#game .hand'); if (!h) return; const cs = [...h.querySelectorAll('.card')]; if (cs.length < 2) return;
+    const cs0 = getComputedStyle(h), avail = h.clientWidth - parseFloat(cs0.paddingLeft) - parseFloat(cs0.paddingRight), w = cs[0].offsetWidth;
+    const gaps = h.querySelectorAll('.gap').length * 14, step = (avail - gaps - w) / (cs.length - 1), margin = Math.max(-(w - 17), Math.min(4, step - w));
+    cs.forEach((c, i) => { c.style.marginRight = i === cs.length - 1 ? '0' : margin + 'px'; });
   }
 };
 
@@ -437,19 +444,28 @@ function homeHTML() {
   const netNote = online ? '' : '<p class="note">Connecting to the game server…</p>';
   return `<div class="wrap" id="home"><div class="hero"><h1>Donkey of the Day</h1>
   <p class="tag">Follow suit, cut when you can’t, and don’t be the last one holding cards.</p>
-  <div class="row namerow"><input id="nm" class="t grow" maxlength="24" autocomplete="nickname" value="${esc(App.name)}" placeholder="Your display name" aria-label="Your display name"><button class="btn alt" data-a="help" aria-label="How to play">How to play</button>${online ? '<button class="btn alt" data-a="profile">My profile</button>' : ''}</div>
+  <input id="nm" class="t namein" maxlength="24" autocomplete="nickname" value="${esc(App.name)}" placeholder="Your name at the table" aria-label="Your display name">
+  <div class="row quick"><button class="btn alt small" data-a="help" aria-label="How to play">📖 Rules</button>${online ? '<button class="btn alt small" data-a="profile">⭐ My profile</button>' : ''}<button class="btn alt small" data-a="fun-hall" ${Net.canWatch() ? '' : 'disabled'}>🫏 Hall of Shame</button></div>
   ${App.homeMsg ? `<p class="err" role="alert">${esc(App.homeMsg)}</p>` : ''}
   <div class="row suitrow"><span>Suit names</span>${suitSeg()}<span class="ver">v${BUILD.version}</span></div></div>
+  ${Prog.challengeHTML()}
   <div class="homeform">
   <div class="choice"><h3>Play with friends</h3>${netNote}
     <div class="row" style="margin-top:6px"><button class="btn gold" data-a="create" ${online && !App.joining ? '' : 'disabled'}>Create room</button>
-    ${last && last.code ? `<button class="btn alt" data-a="rejoin" ${online ? '' : 'disabled'}>Rejoin ${esc(last.code)}</button>` : ''}<button class="btn alt" data-a="fun-hall" ${Net.canWatch() ? '' : 'disabled'}>🫏 Hall of Shame</button></div>${Prog.challengeHTML()}
+    ${last && last.code ? `<button class="btn alt" data-a="rejoin" ${online ? '' : 'disabled'}>Rejoin ${esc(last.code)}</button>` : ''}</div>
     <label class="note pubrow"><input type="checkbox" data-change="public" ${App.createPublic ? 'checked' : ''}> Public room (chat is filtered, song uploads are off)</label>
     <div class="joinrow"><input id="code" class="t" maxlength="5" aria-label="Room code" placeholder="CODE" autocapitalize="characters"><button class="btn" data-a="join" ${online && !App.joining ? '' : 'disabled'}>Join</button><button class="btn alt" data-a="watch" ${Net.canWatch() && !App.joining ? '' : 'disabled'} title="Follow a match, chat and tease without a seat">Watch</button></div></div>
   <div class="choice"><h3>Practice with bots</h3>
     <div class="row" style="margin-top:6px"><select class="lvl" data-change="plevel" aria-label="Bot level">${LEVELS.map(([k, l]) => `<option value="${k}" ${App.practiceLevel === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
     <button class="btn" data-a="practice" data-n="4">4 players</button><button class="btn alt" data-a="practice" data-n="5">5 players</button></div></div>
   </div><p class="note foot"><a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p></div>`;
+}
+/* the Lab's fun rules as tap-to-toggle chips, so they are one tap away instead of buried in settings */
+function funChipsHTML(L, H) {
+  const F = L.fun || {}, rules = [['shuffle', '🔀', 'Shuffle power'], ['powers', '✨', 'Magic cards'], ['blitz', '⚡', 'Blitz'], ['bets', '🎲', 'Bets'], ['mute', '🤐', 'Mute Donkey']];
+  return `<div class="rulechips" role="group" aria-label="Fun rules">${rules.map(([k, i, n]) => H
+    ? `<button class="rulechip ${F[k] ? 'on' : ''}" data-a="v7-fun" data-k="${k}" data-v="${F[k] ? '0' : '1'}" aria-pressed="${!!F[k]}"><span aria-hidden="true">${i}</span> ${n}</button>`
+    : `<span class="rulechip ${F[k] ? 'on' : 'off'}"><span aria-hidden="true">${i}</span> ${n}</span>`).join('')}</div>`;
 }
 function lobbyHTML() {
   const p = App.pub, L = p.lobby, me = (L.members || []).find(x => x.uid === App.uid), H = App.isHost, m = p.match;
@@ -464,10 +480,13 @@ function lobbyHTML() {
   const nowTitle = p.music.kind === 'song' ? p.music.song.title : App.trackFor(p.music).title;
   const startWhy = !full ? `Waiting for ${missing} more player${missing > 1 ? 's' : ''}. ${App.local ? '' : 'Share the code, or fill the seats with bots.'}` : 'Every seat is filled. Music is optional, so you can start now.';
   return foldSections(`<div class="wrap lobby">
-  <div class="row lobhead"><div class="grow">${App.local ? '<h1>Practice table</h1>' : `<div class="note">Room code · ${L.public ? 'public room, chat is filtered' : 'private room'}</div><div class="code">${esc(App.code)}</div>`}</div>
+  <div class="row lobhead"><div class="grow">${App.local ? '<h1>Practice table</h1>' : '<h1>Table lobby</h1>'}</div>
    <button class="btn alt small" data-a="help" aria-label="How to play">?</button><button class="btn alt small" data-a="leave">Leave</button></div>
-  ${App.local ? '' : `<p class="note">Friends open this page, choose Join room and enter the code. ${H ? 'You are the host: you choose the settings and start the match. The game runs on the server, so you can close this page without stopping it.' : ''}</p>
-   <button class="btn alt small" data-a="copy-code">Copy invite</button>`}
+  ${App.local ? '' : `<section class="invite" aria-label="Invite friends"><div class="note">Room code · ${L.public ? 'public room, chat is filtered' : 'private room'}</div>
+   <div class="bigcode" aria-label="Room code ${esc(App.code.split('').join(' '))}">${esc(App.code)}</div>
+   <div class="row"><button class="btn gold" data-a="share-invite">📲 Share invite</button><button class="btn alt" data-a="copy-code">Copy link</button></div>
+   <p class="note">${H ? 'You’re the host: you pick the rules and press Start. The game runs on the server, so closing this page won’t stop it.' : 'Waiting for the host to start the match.'}</p></section>`}
+  ${funChipsHTML(L, H)}
   <section class="blk"><h2>Players ${L.members.length}/${L.seatsWanted}</h2><ul class="list">
   ${L.members.map(x => `<li>${avatar(x.uid)}<span class="dot ${x.bot || App.online.has(x.uid) || x.uid === App.uid || App.local ? 'on' : ''}" title="${x.bot ? 'Bot' : App.online.has(x.uid) ? 'Connected' : 'Not connected'}"></span>
    <span class="grow pname">${esc(x.name)}${x.uid === App.uid ? ' (you)' : ''}${x.uid === p.hostUid ? ' <span class="tagp">Host</span>' : ''}${x.bot && !H ? ` <span class="tagp">🤖 Bot, ${(LEVELS.find(l => l[0] === x.level) || LEVELS[1])[1]}</span>` : ''}</span>
@@ -532,7 +551,7 @@ function gameHTML() {
   const myI = m.seats ? m.seats.indexOf(App.uid) : -1;
   return `<div id="game" class="ph-${m.phase} ${Fun.showdownCls(m)}"><div class="felt">
    <div class="topbar"><span class="ttl grow">${m.handNo ? 'Hand ' + m.handNo : 'Setting up'} <span class="series" title="Series: first to ${m.target} losses">🏁 to ${m.target}</span></span>
-    ${Net.nroom ? `<span class="reactbar" aria-label="Reactions">${['👏', '😂', '🫏', '😬'].map(e => `<button data-a="react" data-e="${e}" aria-label="Send ${e}">${e}</button>`).join('')}</span>` : ''}
+    ${Net.nroom ? `<span class="reactbar ${App.reactOpen ? 'open' : ''}" aria-label="Reactions"><button class="reacttog" data-a="react-toggle" aria-expanded="${!!App.reactOpen}" aria-label="Reactions">😀</button><span class="reopts">${['👏', '😂', '🫏', '😬'].map(e => `<button data-a="react" data-e="${e}" aria-label="Send ${e}">${e}</button>`).join('')}</span></span>` : ''}
     <button class="chip mus" data-a="music" aria-label="Music: ${esc(App.musicLabel())}">♪<span class="lbl"> ${esc(App.musicLabel())}</span></button><button class="chip chatchip" data-a="chat" aria-label="Chat">💬<span class="lbl"> Chat</span>${unreadBadge()}</button>
     <button class="chip" data-a="menu" aria-label="Menu">☰<span class="lbl"> Menu</span></button></div>
    ${spect ? `<div class="watchbar">👀 You’re watching. Cards stay hidden.</div>` : ''}
@@ -866,6 +885,9 @@ document.addEventListener('click', async e => {
     case 'audio': App.enableAudio(); break;
     case 'mute': Music.muted = !Music.muted; Music.applyVol(); App.renderSheet(); App.render(); break;
     case 'fill-bots': App.send('FILL_BOTS'); break;
+    case 'share-invite': { const url = location.origin + '/?room=' + App.code, text = 'Join my Donkey of the Day game! Room ' + App.code + ' 🫏';
+      if (navigator.share) { try { await navigator.share({ title: 'Donkey of the Day', text, url }); } catch (x) {} } else window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank', 'noopener'); break; }
+    case 'react-toggle': App.reactOpen = !App.reactOpen; App.render(); break;
     case 'profile': App.openProfile(); break;
     case 'logout': App.googleLogout(); break;
     case 'export-data': App.exportData(); break;
@@ -891,7 +913,7 @@ document.addEventListener('click', async e => {
     case 'resume': App.send('RESUME'); break;
     case 'rematch': App.send('REMATCH'); break;
     case 'lobby': App.send('BACK_TO_LOBBY'); break;
-    case 'react': Net.emit('react', { e: b.dataset.e }); break;
+    case 'react': Net.emit('react', { e: b.dataset.e }); App.reactOpen = false; if (matchMedia('(max-width:430px)').matches) App.render(); break;
     default: V7.click(a, b) || Fun.click(a, b); break;
     case 'copy-result': { const a2 = m.award, rows = m.seats.map(u => `${nameOf(u)} ${m.losses[u]}`).join(', ');
       const t = `Donkey of the Day: ${nameOf(a2.uid)}${m.titleOf && m.titleOf[a2.uid] ? ' (' + m.titleOf[a2.uid] + ')' : ''}, ${m.target} losses, ${a2.date} (${a2.tz}). Final losses: ${rows}.`;

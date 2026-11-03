@@ -404,7 +404,7 @@ details.set[open] > summary{ margin-bottom:6px; }
 #home .tag.labban{ color:#fff; font-size:14px; }
 .labban{ display:inline-block; padding:3px 10px; border-radius:8px; background:#5B2A86; color:#fff; font-size:12px; line-height:1.35; }
 .namerow{ margin-top:10px; }
-.wrap.lobby{ overflow-x:hidden; }
+.wrap.lobby{ overflow-x:clip; }   /* clip, not hidden: hidden would make this a scroll container and break the sticky Start bar */
 .lobhead h1{ font-size:30px; }
 .lobhead .code{ font-size:34px; }
 .pname{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -610,6 +610,29 @@ details.set section.sub h3{ font-size:20px; margin-bottom:4px; }
 .foot a{ color:inherit; }
 .legal{ max-width:720px; margin:0 auto; padding:24px 16px 48px; }
 .legal h1{ margin-bottom:12px; } .legal h2{ font-size:22px; margin:24px 0 6px; }
+
+/* ---- UI refresh: home, lobby, phone game screen ---- */
+.namein{ margin-top:14px; font-size:18px; min-height:50px; }
+.quick{ margin-top:10px; gap:8px; }
+.quick .btn.small{ flex:1 1 0; min-width:0; padding:6px 8px; }
+.chal{ margin:14px 0 4px; }
+.invite{ background:var(--surface); border:1.5px solid var(--line); border-radius:16px; padding:14px 16px 12px; margin:6px 0 12px; text-align:center; }
+.bigcode{ font-family:var(--display); font-size:clamp(40px,14vw,60px); letter-spacing:.18em; padding-left:.18em; line-height:1.1; margin:2px 0 10px; color:var(--felt); user-select:all; }
+.invite .row{ justify-content:center; }
+.invite .note{ margin:8px 0 0; }
+.rulechips{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+.rulechip{ border:0; border-radius:20px; padding:7px 13px; font-size:15px; font-weight:600; min-height:38px; background:transparent; color:var(--muted); box-shadow:inset 0 0 0 1.5px var(--line); }
+.rulechip.on{ background:var(--felt); color:var(--feltInk); box-shadow:none; }
+span.rulechip{ display:inline-flex; align-items:center; gap:4px; min-height:32px; font-size:14px; }
+span.rulechip.off{ opacity:.55; }
+.hand{ scrollbar-width:none; } .hand::-webkit-scrollbar{ display:none; }
+.reactbar{ position:relative; } .reacttog{ display:none; } .reopts{ display:flex; gap:4px; }
+@media (max-width:430px){
+  .reactbar .reacttog{ display:inline-block; border:0; background:rgba(255,255,255,.1); border-radius:20px; width:38px; height:34px; font-size:18px; }
+  .reactbar .reopts{ display:none; position:absolute; top:40px; left:0; z-index:6; background:var(--felt2); padding:6px; border-radius:16px; box-shadow:0 8px 22px rgba(0,0,0,.4); }
+  .reactbar.open .reopts{ display:flex; }
+  .topbar{ gap:6px; padding:8px 10px; }
+}
 </style>
 </head>
 <body>
