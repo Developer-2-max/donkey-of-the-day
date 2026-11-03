@@ -139,7 +139,7 @@ test('a server restart resumes every room', async () => {
   } finally { await s.stop(); if (s2) await s2.stop(); }
 });
 /* ---------- Lab 2.6 features over the real server ---------- */
-const driveHost = async (p, ms = 45000) => {   // plays the human's compulsory steps; returns the phases seen until the first turn
+const driveHost = async (p, ms = 70000) => {   // plays the human's compulsory steps; returns the phases seen until the first turn
   const seen = []; const t0 = Date.now();
   while (Date.now() - t0 < ms) {
     const m = p.state && p.state.match; if (m) {

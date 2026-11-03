@@ -147,7 +147,8 @@ class Host {
     if (botKey && !this.botTimer) {
       const u = botKey.split(':').slice(1).join(':'), dealing = ['DEALING', 'SHUFFLE', 'DECK_CUT'].includes(st.phase);
       const quick = this.lobby.botSpeed === 'quick';
-      let ms = dealing ? (st.phase === 'DEALING' ? 500 : 1500) + Math.random() * 700 : quick ? 1000 + Math.random() * 2000 : 5000 + Math.random() * 10000;
+      let ms = dealing ? (st.phase === 'DEALING' ? 150 + Math.random() * 250 : 1500 + Math.random() * 700) :   // a bot dealing one card at a time must not keep the table waiting a minute
+       quick ? 1000 + Math.random() * 2000 : 5000 + Math.random() * 10000;
       if (st.turnMs && st.turnMs < 20000 && !dealing) ms = Math.min(ms, 1500 + Math.random() * 3500);   // Blitz: bots must move inside the 10 s turn
       this.botTimer = { key: botKey, id: setTimeout(() => { this.botTimer = null; const a = Engine.botAction(this.st, u); if (a && Engine.apply(this.st, u, a, Date.now()) === null) this.changed(); else this.schedule(); }, ms), at: Date.now() + ms, u };
     }
