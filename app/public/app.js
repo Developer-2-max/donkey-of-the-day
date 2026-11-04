@@ -164,6 +164,12 @@ const App = {
     LS.set('dotd-last', { code, name: this.name, watch: !!watch }); history.replaceState(null, '', '?room=' + code); this.render();
   },
   rejoin() { Net.call('join', { code: this.code, name: this.name, watch: this.watching }); },
+  /* back to the home page. The room itself stays open on the server, so the host can use Rejoin to come back to it. */
+  async goHome() {
+    const wasHost = this.isHost && !this.local && !this.watching && this.code, code = this.code;
+    await this.leave();
+    if (wasHost) this.toast('Room ' + code + ' is still open. Tap Rejoin to come back to it.');
+  },
   async leave() {
     this.closeSheet();
     if (this.host) this.host.timers.forEach(clearTimeout);
@@ -561,9 +567,9 @@ function lobbySeatedHTML(p, L, H) {
     : `Waiting for ${missing} more player${missing > 1 ? 's' : ''}${H ? '. Share the code, or fill the seats with bots.' : '.'}`;
   const pips = Array.from({ length: n }, (_, i) => `<i class="${i < have ? 'on' : ''}"></i>`).join('');
   return `<div class="wrap lb">
-    <header class="lb-head"><div><div class="lb-eyebrow">Donkey of the Day</div><h1>${App.local ? 'Practice table' : 'Table lobby'}</h1></div>
+    <header class="lb-head"><div class="lb-lead"><button class="lb-back" data-a="go-home" aria-label="Back to the home page">← <span>Home</span></button><div><div class="lb-eyebrow">Donkey of the Day</div><h1>${App.local ? 'Practice table' : 'Table lobby'}</h1></div></div>
       <div class="lb-actions">${App.local ? '' : `<span class="lb-badge ${L.public ? 'pub' : ''}" title="${L.public ? 'Public room: chat is filtered and song uploads are off' : 'Private room: only people with the code can join'}">${L.public ? '🌐 Public room' : '🔒 Private room'}</span>`}
-        <button class="btn alt small" data-a="help" aria-label="How to play">?</button><button class="btn alt small" data-a="leave">Leave</button></div></header>
+        <button class="btn alt small" data-a="help" aria-label="How to play">?</button></div></header>
     <div class="lb-grid">
       <div class="lb-col lb-left">${App.local ? '' : lobbyInviteHTML(L, H)}${lobbySeatsHTML(p, L, H)}</div>
       <div class="lb-col lb-right">${lobbyRulesHTML(L, H)}${lobbyMoreHTML(L, H, nowTitle)}</div>
@@ -1004,6 +1010,7 @@ document.addEventListener('click', async e => {
     case 'leave': App.openSheet('leave'); break;
     case 'close-sheet': App.closeSheet(); break;
     case 'leave-now': App.leave(); break;
+    case 'go-home': App.goHome(); break;
     case 'end-match': App.closeSheet(); App.send('END_MATCH'); break;
     case 'copy-code': try { await navigator.clipboard.writeText(`Join my Donkey of the Day room. Open the game page, choose Join room and enter ${App.code}.`); App.toast('Invite copied.'); } catch (x) { App.toast('Room code: ' + App.code); } break;
     case 'audio': App.enableAudio(); break;
