@@ -119,7 +119,7 @@ const cardStatic = (c, cls = '') => cardHTML(c, cls, 'tabindex="-1" disabled sty
 const App = {
   view: 'home', uid: null, name: '', code: null, host: null, isHost: false, local: false, pub: null, hand: [], sel: [], pending: null,
   extra: null, offset: 0, lastRecv: 0, online: new Set(), dealCount: 3, seatOrder: null, musicKey: '', homeMsg: '', joining: false, createPublic: false, profile: null, mutedUsers: new Set(LS.get('dotd-muted') || []), suitMode: LS.get('dotd-suits') || 'both', practiceLevel: LS.get('dotd-botlevel') || 'medium',
-  musicPick: (LS.get('dotd-music') || {}).src === 'own' ? { src: 'own' } : { src: 'room' }, chatDocs: {}, localChat: [], chatOpen: false, chatSeen: 0, chatCount: 0, teaseOpen: LS.get('dotd-tease') === true, openSets: new Set(), watching: false, songs: {}, localSongs: [], teaseTarget: '', clipJob: null,
+  musicPick: (LS.get('dotd-music') || {}).src === 'own' ? { src: 'own' } : { src: 'room' }, chatDocs: {}, localChat: [], resultHidden: null, chatOpen: false, chatSeen: 0, chatCount: 0, teaseOpen: LS.get('dotd-tease') === true, openSets: new Set(), watching: false, songs: {}, localSongs: [], teaseTarget: '', clipJob: null,
 
   async boot() {
     this.name = LS.get('dotd-name') || '';
@@ -326,7 +326,7 @@ const App = {
   renderSheet() {
     const sh = $('#sheet'); if (!this.sheet) return sh.classList.add('hidden');
     let h = '';
-    if (this.sheet === 'menu') h = `<h2>Menu</h2><div class="row"><button class="btn" data-a="scores">Scores and history</button><button class="btn alt" data-a="fun-comm">🎙️ Commentary</button><button class="btn alt" data-a="music">♪ Music</button>${this.local ? '' : '<button class="btn alt" data-a="fun-hall">🫏 Hall of Shame</button>'}<button class="btn alt" data-a="help">How to play</button><button class="btn alt" data-a="leave">Leave room</button>${Net.online() ? '<button class="btn alt" data-a="profile">⭐ My profile and progress</button>' : ''}</div><section class="blk"><h3 style="font-size:20px">Suit names</h3><div style="margin-top:8px">${suitSeg()}</div><p class="note">Kilwar ♣, Chaukat ♦, Badam ♥, Ispik ♠</p></section><p class="note" style="margin-top:14px">Donkey of the Day ${BUILD.version}. ${this.local ? 'Practice table on this device.' : 'Room ' + esc(this.code) + '.'}</p>`;
+    if (this.sheet === 'menu') h = `<h2>Menu</h2><div class="row"><button class="btn" data-a="scores">Scores and history</button><button class="btn alt" data-a="fun-comm">🎙️ Commentary</button><button class="btn alt" data-a="music">♪ Music</button><button class="btn alt" data-a="fun-hall">🫏 Hall of Shame</button><button class="btn alt" data-a="help">How to play</button><button class="btn alt" data-a="leave">Leave room</button>${Net.online() ? '<button class="btn alt" data-a="profile">⭐ My profile and progress</button>' : ''}</div><section class="blk"><h3 style="font-size:20px">Suit names</h3><div style="margin-top:8px">${suitSeg()}</div><p class="note">Kilwar ♣, Chaukat ♦, Badam ♥, Ispik ♠</p></section><p class="note" style="margin-top:14px">Donkey of the Day ${BUILD.version}. ${this.local ? 'Practice table on this device.' : 'Room ' + esc(this.code) + '.'}</p>`;
     if (this.sheet === 'help') h = `<h2>How to play</h2>${rulesHTML()}`;
     if (this.sheet === 'comm') h = Fun.commHTML();
     if (this.sheet === 'hall') h = `<h2>Hall of Shame</h2>${Fun.hallHTML()}`;
@@ -339,6 +339,7 @@ const App = {
     if (this.sheet === 'story') h = `<h2>Table story</h2>${storyHTML()}`;
     if (this.sheet === 'scores') h = `<h2>Scores</h2>${scoresHTML(true)}`;
     if (this.sheet === 'leave') h = `<h2>Leave the room?</h2><p>${this.local ? 'This practice game will end.' : (this.watching ? 'You’ll stop watching this room.' : 'Your seat is kept. If you are away during your turn, moves are made for you, and after two of them the game pauses.')}</p><div class="row"><button class="btn gold" data-a="leave-now">Leave</button>${this.isHost && this.pub && this.pub.match && !['MATCH_RESULT','INCOMPLETE'].includes(this.pub.match.phase) ? '<button class="btn alt" data-a="end-match">End match without a result</button>' : ''}</div>`;
+    sh.dataset.kind = this.sheet;
     sh.innerHTML = `<div><div class="row" style="justify-content:flex-end"><button class="btn alt small" data-a="close-sheet">Close</button></div>${h}</div>`;
     sh.classList.remove('hidden');
   },
@@ -422,20 +423,29 @@ function signInHTML(pr) {
 }
 function profileHTML() {
   const pr = App.profile;
-  if (!pr) return '<h2>My profile</h2><p class="note">Loading…</p>';
-  if (pr.error) return `<h2>My profile</h2><p class="err">${esc(ERR[pr.error] || 'Could not load your profile.')}</p>`;
-  const into = Math.max(0, Math.min(100, pr.xp - pr.prevLevelXp));
-  const hall = pr.hall.length ? `<ol class="hall">${pr.hall.map(h => `<li><b>${esc(h.title || 'Donkey of the Day')}</b> <span class="note">${esc(h.date || '')}, room ${esc(h.room)}, ${h.losses} losses</span></li>`).join('')}</ol>` : '<p class="note">Nobody has crowned you Donkey of the Day yet. Keep it that way.</p>';
-  return `<h2>${esc(pr.name || App.name || 'My profile')}</h2>
-  <p>Level <b>${pr.level}</b> · ${pr.xp} XP</p><div class="xpbar" role="progressbar" aria-valuenow="${into}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress to level ${pr.level + 1}"><i style="width:${into}%"></i></div>
-  <p class="note">${pr.nextLevelXp - pr.xp} XP to level ${pr.level + 1}. Hands, escapes, matches and challenges all earn XP, and new levels unlock table colours and card backs.</p>
-  ${Prog.challengeHTML()}${Prog.lookHTML()}
-  <section class="blk"><h3 style="font-size:20px">Stats</h3><p>${pr.matches} matches · ${pr.series.won} series safe · ${pr.series.lost} series lost · ${pr.handsSafe} hands finished safe</p></section>
-  <section class="blk"><h3 style="font-size:20px">My Hall of Shame entries</h3>${hall}<button class="btn alt small" data-a="fun-hall">🫏 Open the Hall of Shame</button></section>
-  <section class="blk"><h3 style="font-size:20px">Sign in</h3>${signInHTML(pr)}</section>
-  <section class="blk"><h3 style="font-size:20px">Your data</h3><p class="note">${pr.account ? 'Your progress is saved to your Google account on this server.' : 'Your progress is saved on this server against this browser. Clearing browser data or switching device starts a fresh profile unless you sign in.'} The Hall of Shame is public and shows display names. You can download or delete everything we hold about you.</p>
-  <div class="row"><button class="btn alt small" data-a="export-data">Download my data</button><button class="btn alt small" data-a="delete-data">Delete my data</button></div></section>`;
+  if (!pr) return '<div class="pf"><h2>My profile</h2><p class="note">Loading…</p></div>';
+  if (pr.error) return `<div class="pf"><h2>My profile</h2><p class="err">${esc(ERR[pr.error] || 'Could not load your profile.')}</p></div>`;
+  const into = Math.max(0, Math.min(100, pr.xp - pr.prevLevelXp)), name = pr.name || App.name || 'Player';
+  const hall = pr.hall.length ? `<ol class="pf-hall">${pr.hall.map(h => `<li><span class="pf-trophy" aria-hidden="true">🫏</span><span><b>${esc(h.title || 'Donkey of the Day')}</b><small>${esc(h.date || '')} · room ${esc(h.room)} · ${h.losses} losses</small></span></li>`).join('')}</ol>` : '<p class="note">Nobody has crowned you Donkey of the Day yet. Keep it that way. 😄</p>';
+  const tiles = [['🎮', pr.matches, 'Matches'], ['🛡️', pr.series.won, 'Series safe'], ['🫏', pr.series.lost, 'Series lost'], ['✋', pr.handsSafe, 'Hands safe']];
+  return `<div class="pf">
+    <div class="pf-hero"><div class="pf-ring" style="--p:${into}" role="img" aria-label="Level ${pr.level}, ${into}% of the way to level ${pr.level + 1}"><span>${esc((name[0] || '?').toUpperCase())}</span></div>
+      <div class="pf-id"><h2>${esc(name)}</h2><div class="pf-sub"><span class="lvlbadge">LEVEL ${pr.level}</span><span>${pr.xp} XP</span></div>
+        <div class="pf-acct">${pr.account ? '✅ Signed in with Google' : '👤 Playing as a guest on this browser'}</div></div></div>
+    <div class="pf-xp"><div class="xpbar" role="progressbar" aria-valuenow="${into}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress to level ${pr.level + 1}"><i style="width:${into}%"></i></div>
+      <span class="note">${pr.nextLevelXp - pr.xp} XP to level ${pr.level + 1}. Matches, safe hands and challenges earn XP, and levels unlock table colours and card backs.</span></div>
+    <div class="pf-tiles">${tiles.map(([i, n, l]) => `<div class="pf-tile"><span aria-hidden="true">${i}</span><b>${n}</b><small>${l}</small></div>`).join('')}</div>
+    ${Prog.challengeHTML()}
+    ${!pr.account && pr.loginAvailable ? `<section class="pf-card pf-signin"><h3>Keep your progress on every device</h3><p class="note">Sign in with Google. We store only your Google account ID and name, never your email or photo.</p><div id="gbtn" style="min-height:44px"></div></section>` : ''}
+    <section class="pf-card"><h3>Table colour and card back</h3>${Prog.lookHTML()}</section>
+    <section class="pf-card"><h3>My Hall of Shame entries</h3>${hall}<button class="btn alt small" data-a="fun-hall">🫏 Open the Hall of Shame</button></section>
+    <details class="pf-card pf-more" ${App.openSets.has('pf-more') ? 'open' : ''} data-set="pf-more"><summary>Account and data</summary>
+      ${pr.account ? signInHTML(pr) : (!pr.loginAvailable ? '<p class="note">Sign-in is not switched on for this server yet.</p>' : '')}
+      <p class="note">${pr.account ? 'Your progress is saved to your Google account on this server.' : 'Your progress is saved on this server against this browser. Clearing browser data or switching device starts a fresh profile unless you sign in.'} The Hall of Shame is public and shows display names. You can download or delete everything we hold about you.</p>
+      <div class="row"><button class="btn alt small" data-a="export-data">⬇️ Download my data</button><button class="btn alt small" data-a="delete-data">🗑️ Delete my data</button></div></details>
+  </div>`;
 }
+
 function suitSeg() {
   return `<span class="seg" role="group" aria-label="Suit names">${[['en', 'English'], ['hi', 'Hinglish'], ['both', 'Both']].map(([k, l]) => `<button data-a="suits" data-k="${k}" aria-pressed="${App.suitMode === k}">${l}</button>`).join('')}</span>`;
 }
@@ -499,7 +509,7 @@ function lobbySeatsHTML(p, L, H) {
     const tags = (x.uid === p.hostUid ? '<span class="lb-tag host">👑 Host</span>' : '') + (x.uid === App.uid ? '<span class="lb-tag you">You</span>' : '') + (x.bot ? `<span class="lb-tag bot">🤖 ${lvl[1]}</span>` : '');
     const ctl = (x.bot && H ? `<select class="lvl" data-change="botlevel" data-u="${esc(x.uid)}" aria-label="Level for ${esc(x.name)}">${LEVELS.map(([k, l]) => `<option value="${k}" ${x.level === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : '') +
       (H && x.uid !== App.uid ? `<button class="btn alt small rm" data-a="remove" data-u="${esc(x.uid)}" aria-label="Remove ${esc(x.name)}">✕</button>` : '');
-    return `<li class="seat-row ${x.uid === App.uid ? 'me' : ''} ${x.bot && H ? 'bot-h' : ''}">${avatar(x.uid)}
+    return `<li class="seat-row ${x.uid === App.uid ? 'is-me' : ''} ${x.bot && H ? 'bot-h' : ''}">${avatar(x.uid)}
       <div class="seat-main"><div class="seat-name"><span class="dot ${online ? 'on' : ''}" title="${x.bot ? 'Bot' : online ? 'Connected' : 'Not connected'}"></span>${esc(x.name)}</div><div class="seat-tags">${tags}</div></div>
       ${ctl ? `<div class="seat-ctl">${ctl}</div>` : ''}</li>`;
   }).join('');
@@ -647,9 +657,7 @@ function centerHTML(m) {
     case 'HAND_RESULT': { const r = m.lastResult, humans = m.seats.filter(u => !m.bots[u]), rd = humans.filter(u => m.ready[u]).length;
       return `<div class="ass" aria-hidden="true">🫏</div><h2>${r.uid === me ? 'You are' : esc(nameOf(r.uid)) + ' is'} the Donkey of hand ${r.handNo}</h2><p class="lvl-line">${m.losses[r.uid]} of ${m.target} losses${r.level ? ` · Level ${r.level} Donkey` : ''}</p><p style="margin:0">${esc(r.reason)} ${esc(nameOf(r.uid))} deals next.</p>${titleBlock(m, r)}${V7.handExtras(m)}
       ${scoreChips(m)}<button class="btn gold" data-a="next" ${m.ready[me] || App.pending ? 'disabled' : ''}>${m.ready[me] ? 'Waiting for others' : 'Ready for next hand'}</button><div class="tlabel">${rd}/${humans.length} ready</div>${timerHTML(m.deadline, T.ready)}`; }
-    case 'MATCH_RESULT': { const a = m.award;
-      return `<div class="award"><div class="cap">${esc(a.date)} · ${esc(a.tz)}</div><h2>Donkey of the Day</h2><div class="who">${esc(nameOf(a.uid))}</div>${m.titleOf && m.titleOf[a.uid] ? `<div class="rank">${esc(m.titleOf[a.uid])}</div>` : ''}${titleBlock(m, m.lastResult, true)}<div class="cap">${m.target} losses in ${m.handNo} hand${m.handNo === 1 ? "" : "s"}</div>${scoresHTML(false)}<div class="cap">Match ${esc(m.matchId)}</div></div>${V7.comeback(m)}
-      <div class="row" style="justify-content:center">${App.isHost ? '<button class="btn gold" data-a="rematch">Rematch</button><button class="btn alt" data-a="lobby">Back to lobby</button>' : '<span class="note" style="color:var(--feltMuted)">The host can start a rematch.</span>'}<button class="btn alt" data-a="copy-result">Copy result</button>${App.local ? '' : '<button class="btn alt" data-a="fun-hall">🫏 Hall of Shame</button>'}</div>`; }
+    case 'MATCH_RESULT': return resultHTML(m);
     case 'PAUSED': return `<h2>Paused</h2><p>${m.pauseFor === me ? 'Two of your moves were made automatically. Resume to keep playing.' : 'Waiting for <b>' + esc(nameOf(m.pauseFor)) + '</b>. Two of their moves were made automatically.'}</p>${m.pauseFor === me ? '<button class="btn gold" data-a="resume">Resume playing</button>' : ''}${timerHTML(m.deadline, T.pause)}<div class="tlabel">If time runs out, the match ends without an award.</div>`;
     case 'INCOMPLETE': return `<h2>Match ended</h2><p>${esc(m.incompleteReason || '')} No Donkey of the Day is awarded for an unfinished match. Completed hands stay in the score table.</p>${scoreChips(m)}
       ${App.isHost ? '<div class="row" style="justify-content:center"><button class="btn gold" data-a="rematch">Rematch</button><button class="btn alt" data-a="lobby">Back to lobby</button></div>' : ''}`;
@@ -692,6 +700,37 @@ function playerSheetHTML() {
    <h3 style="font-size:20px;margin-top:14px">Played this hand</h3>
    ${h.length ? Object.entries(byTrick).map(([t, ps]) => `<div class="ev"><span class="note" style="width:64px">Trick ${t}</span>${ps.map(p => `<span class="hl k-${p.k}">${lbl[p.k]} ${cardStatic(p.c, 'mini')}</span>`).join('')}</div>`).join('') : '<p class="note">Nothing yet this hand.</p>'}
    ${r && r.known.length ? `<p class="note" style="margin-top:10px">Still holding from a pickup: ${r.known.map(short).join(' ')}</p>` : ''}`;
+}
+/* ---------- match result: a full-screen celebration with the certificate, ranked standings, highlights and a footer that never covers the scores ---------- */
+function resultHTML(m) {
+  const a = m.award, me = App.uid, don = a.uid, mine = don === me, seated = !!m.names[me], T = m.target;
+  const title = (m.titleOf || {})[don] || '', lvl = m.lastResult && m.lastResult.level;
+  const footer = `<div class="res-bar">${App.isHost ? '<button class="btn gold" data-a="rematch">🔁 Rematch</button><button class="btn alt" data-a="lobby">Back to lobby</button>' : '<span class="res-wait">The host can start a rematch</span>'}<button class="btn alt" data-a="copy-result">📋 Copy result</button><button class="btn alt" data-a="fun-hall">🫏 Hall of Shame</button></div>`;
+  if (App.resultHidden === m.matchId) return `<div class="res-min"><button class="btn gold" data-a="result-show">🏆 Show the results</button>${footer}</div>`;
+  const order = (m.seats || m.lobby).slice().sort((x, y) => (m.losses[x] || 0) - (m.losses[y] || 0) || (x === don ? 1 : y === don ? -1 : 0));
+  const comeback = u => u !== don && (m.losses[u] || 0) === T - 1;
+  const medal = (u, i) => u === don ? '🫏' : ['🥇', '🥈', '🥉'][i] || String(i + 1);
+  const standings = order.map((u, i) => `<li class="res-row ${u === don ? 'donkey' : ''} ${u === me ? 'is-me' : ''}">
+      <span class="res-pos" aria-hidden="true">${medal(u, i)}</span>${avatar(u)}
+      <span class="res-who"><b>${esc(nameOf(u))}${u === me ? ' <em>(you)</em>' : ''}</b>${m.bots[u] ? '<span class="cm-bot">bot</span>' : ''}${comeback(u) ? '<span class="res-tag">🔥 comeback</span>' : ''}${u === don && (m.titleOf || {})[u] ? `<span class="res-tag t">${esc(m.titleOf[u])}</span>` : ''}</span>
+      <span class="res-bar2" aria-hidden="true"><i style="width:${Math.min(100, 100 * (m.losses[u] || 0) / T)}%"></i></span><b class="res-n" aria-label="${m.losses[u] || 0} of ${T} losses">${m.losses[u] || 0}<small>/${T}</small></b></li>`).join('');
+  const S = m.stats, top = (key, src) => { const o = src || (S && S[key]) || {}, arr = (m.seats || []).map(u => [u, o[u] || 0]).sort((x, y) => y[1] - x[1]); return arr[0] && arr[0][1] > 0 ? arr[0] : null; };
+  const tiles = S ? [['✂️', 'Most cuts', top('cuts'), n => n + ' cuts'], ['📦', 'Biggest cut', top('big'), n => n + ' cards'], ['🛡️', 'Longest safe streak', top('best'), n => n + ' hands'], ['🏁', 'First out most', top('first'), n => n + '×'], ...(m.opts && m.opts.bets ? [['🎲', 'Best bettor', top(null, m.betPts), n => n + ' won']] : [])].filter(t => t[2]) : [];
+  const riv = S ? Object.entries(S.rival || {}).map(([k, n]) => { const [x, y] = k.split('>'); return { x, y, n, back: S.rival[y + '>' + x] || 0 }; }).filter(r => r.x < r.y || !S.rival[r.y + '>' + r.x]).sort((p, q) => (q.n + q.back) - (p.n + p.back))[0] : null;
+  const fresh = Date.now() - (a.at + App.offset) < 7000, conf = fresh ? `<div class="confetti" aria-hidden="true">${Array.from({ length: 28 }, (_, i) => `<i style="--x:${(i * 37 + 11) % 100}%;--d:${(i % 7) * .35}s;--t:${3.2 + (i % 5) * .5}s;--c:${['#F2A516', '#EC5F8C', '#3FC7A4', '#7EB2FF', '#C49BFF'][i % 5]};--r:${(i * 53) % 360}deg"></i>`).join('')}</div>` : '';
+  return `<div class="result" role="dialog" aria-label="Match result">${conf}
+    <button class="res-x" data-a="result-hide" aria-label="View the table">View table</button>
+    <div class="res-scroll"><div class="res-inner">
+      <section class="cert"><div class="cert-ribbon">Donkey of the Day</div><div class="cert-stamp" aria-hidden="true">🫏</div>
+        <div class="cert-who">${esc(nameOf(don))}</div>${title ? `<div class="cert-title">${lvl ? `<span class="lvlbadge">L${lvl}</span> ` : ''}${esc(title)}</div>` : ''}
+        <p class="cert-line">${mine ? 'That’s you this time. Wear the crown with pride. 😬' : seated ? 'Phew, not you this time. 😮‍💨' : 'Hee-haw! 🫏'}</p>
+        <div class="cert-meta"><span>${T} losses</span><span>${m.handNo} hand${m.handNo === 1 ? '' : 's'}</span><span>${esc(a.date)}</span></div>
+        <div class="cert-id">Match ${esc(m.matchId)} · ${esc(a.tz)}</div></section>
+      <section class="res-card"><h3>Final standings</h3><ol class="res-list">${standings}</ol>${V7.comeback(m)}</section>
+      ${tiles.length || riv ? `<section class="res-card"><h3>Highlights</h3><div class="res-tiles">${tiles.map(([i, l, w, f]) => `<div class="res-tile"><span aria-hidden="true">${i}</span><small>${l}</small><b>${f(w[1])}</b><em>${esc(shortName(w[0]))}</em></div>`).join('')}</div>
+        ${riv ? `<p class="res-riv">⚔️ Rivalry: <b>${esc(shortName(riv.x))}</b> cut <b>${esc(shortName(riv.y))}</b> ${riv.n}×, and ${esc(shortName(riv.y))} hit back ${riv.back}×.</p>` : ''}</section>` : ''}
+      <details class="res-card res-more"><summary>Full match stats</summary>${V7.statsHTML(m)}${m.history.length ? `<h4 class="sub">Hand by hand</h4><ol class="res-hands">${m.history.map(h => `<li>Hand ${h.handNo}: ${esc(nameOf(h.uid))}</li>`).join('')}</ol>` : ''}</details>
+    </div></div>${footer}</div>`;
 }
 function titleBlock(m, r, compact) {
   if (!r || !r.title) return '';
@@ -941,6 +980,8 @@ document.addEventListener('click', async e => {
     case 'series': App.send('SET_TARGET', { n: +b.dataset.n }); break;
     case 'player': App.sheetUid = b.dataset.u; App.openSheet('player'); break;
     case 'rename': { const v = $('#rename') && $('#rename').value; App.send('CROWN', { name: v }); break; }
+    case 'result-hide': App.resultHidden = m && m.matchId; App.render(); break;
+    case 'result-show': App.resultHidden = null; App.render(); break;
     case 'chat-bottom': { const b2 = $('#chatlist'); b2.scrollTop = b2.scrollHeight; $('#chatnew').classList.add('hidden'); break; }
     case 'quick-chat': App.sendChat(b.dataset.t); break;
     case 'tease-toggle': App.teaseOpen = !App.teaseOpen; LS.set('dotd-tease', App.teaseOpen); renderChat(); break;
@@ -1003,7 +1044,7 @@ document.addEventListener('click', async e => {
       try { await navigator.clipboard.writeText(t); App.toast('Result copied.'); } catch (x) { App.toast(t); } break; }
   }
 });
-document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.input === 'v7-cut') { App.cutAt = +e.target.value; const n = $('#cutn'); if (n) n.textContent = App.cutAt; const pile = document.querySelector('.deckpile'); if (pile) pile.outerHTML = V7.deckHTML(52, App.cutAt); return; } if (e.target.id === 'vol') { Music.vol = +e.target.value; Music.applyVol(); } if (e.target.id === 'nm') App.name = e.target.value; });
+document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.input === 'v7-cut') { App.cutAt = +e.target.value; const n = $('#cutn'); if (n) n.textContent = App.cutAt; const viz = document.querySelector('.cutviz'); if (viz) viz.outerHTML = V7.cutVizHTML(App.cutAt); return; } if (e.target.id === 'vol') { Music.vol = +e.target.value; Music.applyVol(); } if (e.target.id === 'nm') App.name = e.target.value; });
 document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.set) { if (d.open) App.openSets.add(d.dataset.set); else App.openSets.delete(d.dataset.set); } }, true);
 document.addEventListener('change', e => {
   const t = e.target, k = t.dataset && t.dataset.change; if (!k) return;
@@ -1142,21 +1183,22 @@ const Fun = {
     if (App.sheet === 'hall') App.renderSheet();
   },
   hallHTML() {
-    if (App.local) return '<p class="note">The Hall of Shame keeps results from online rooms. Play a room with friends to fill it.</p>';
-    const h = this.hall; if (!h || h.loading) return '<p class="note">Loading the Hall of Shame…</p>';
-    if (h.err) return '<p class="err">The Hall of Shame didn’t load. Check your connection and try again.</p><button class="btn alt small" data-a="fun-hall-reload">Try again</button>';
-    const rows = h.rows || []; if (!rows.length) return '<p class="note">No Donkey of the Day yet. When a match ends, the loser lands here with the date and final score.</p>';
-    const agg = {}; rows.forEach(r => (r.players || []).forEach(p => { if (p.bot) return; const k = (p.name || '').trim().toLowerCase(); if (!k) return;
-      const g = agg[k] = agg[k] || { name: p.name, titles: 0, losses: 0, games: 0, month: 0 }; g.games++; g.losses += p.losses || 0; if (p.donkey) { g.titles++; const d = new Date(r.at || 0), n = new Date(); if (d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear()) g.month++; } }));
-    const board = Object.values(agg).sort((x, y) => y.titles - x.titles || y.losses / y.games - x.losses / x.games);
-    const top = board[0] && board[0].titles ? board[0] : null;
-    return `${top ? `<div class="shame"><div class="stamp" aria-hidden="true">🫏</div><div class="cap">Reigning champion of shame</div><div class="who">${esc(top.name)}</div><div class="cap">${top.titles} time${top.titles === 1 ? '' : 's'} Donkey of the Day in ${top.games} match${top.games === 1 ? '' : 'es'}</div></div>` : ''}
-    <h3 style="font-size:20px;margin-top:14px">Leaderboard</h3>
-    <div class="tblwrap"><table class="hallt"><thead><tr><th scope="col">Player</th><th scope="col" title="Donkey of the Day titles">🫏 Titles</th><th scope="col">This month</th><th scope="col">Matches</th><th scope="col">Losses per match</th></tr></thead>
-    <tbody>${board.map((g, i) => `<tr><td><b>${i + 1}.</b> ${esc(g.name)}</td><td class="num"><b>${g.titles}</b></td><td class="num">${g.month}</td><td class="num">${g.games}</td><td class="num">${(g.losses / g.games).toFixed(1)}</td></tr>`).join('')}</tbody></table></div>
-    <h3 style="font-size:20px;margin-top:14px">Every Donkey of the Day</h3>
-    <div class="hall-list">${rows.slice(0, 40).map(r => `<div class="hrow"><div class="hd">${esc(r.date || '')}</div><div class="hn">${esc(r.name || 'Player')}${r.title ? ` <span class="ttl3">${esc(r.title)}</span>` : ''}</div>
-      <div class="hp">${(r.players || []).map(p => `<span class="hc ${p.donkey ? 'me' : ''}">${esc((p.name || '').replace(/^Bot(?=[A-Z])/, ''))} <b>${p.losses}</b></span>`).join('')}</div></div>`).join('')}</div>`;
+    const h = this.hall;
+    if (!h || h.loading) return '<div class="hl-empty"><div aria-hidden="true">🫏</div><p>Loading the Hall of Shame…</p></div>';
+    if (h.err) return '<div class="hl-empty"><div aria-hidden="true">😵</div><p class="err">The Hall of Shame didn’t load. Check your connection and try again.</p><button class="btn alt small" data-a="fun-hall-reload">Try again</button></div>';
+    const rows = h.rows || [];
+    if (!rows.length) return '<div class="hl-empty"><div aria-hidden="true">🫏</div><b>No Donkey of the Day yet</b><p class="note">When an online match ends, the loser lands here with the date and the final score.</p></div>';
+    const per = this.hallPeriod || 'all', now = new Date(), inP = r => per === 'all' || (new Date(r.at || 0).getMonth() === now.getMonth() && new Date(r.at || 0).getFullYear() === now.getFullYear());
+    const prs = rows.filter(inP), agg = {};
+    prs.forEach(r => (r.players || []).forEach(p => { if (p.bot) return; const k = (p.name || '').trim().toLowerCase(); if (!k) return; const g = agg[k] = agg[k] || { name: p.name, titles: 0, losses: 0, games: 0 }; g.games++; g.losses += p.losses || 0; if (p.donkey) g.titles++; }));
+    const board = Object.values(agg).sort((x, y) => y.titles - x.titles || y.losses / y.games - x.losses / x.games), top = board[0] && board[0].titles ? board[0] : null;
+    const seg = `<span class="seg" role="group" aria-label="Period">${[['all', 'All time'], ['month', 'This month']].map(([k, l]) => `<button data-a="fun-hall-period" data-k="${k}" aria-pressed="${per === k}">${l}</button>`).join('')}</span>`;
+    return `<div class="hall2"><div class="hl-top">${seg}<span class="note">${prs.length} match${prs.length === 1 ? '' : 'es'}</span></div>
+      ${top ? `<div class="shame"><div class="stamp" aria-hidden="true">🫏</div><div class="cap">Reigning champion of shame</div><div class="who">${esc(top.name)}</div><div class="cap">${top.titles} time${top.titles === 1 ? '' : 's'} Donkey of the Day in ${top.games} match${top.games === 1 ? '' : 'es'}</div></div>` : '<div class="hl-empty slim"><b>No Donkey of the Day in this period</b></div>'}
+      ${board.length ? `<h3 class="hl-h">Leaderboard</h3><ol class="lead">${board.map((g, i) => `<li class="lead-row ${i === 0 && g.titles ? 'first' : ''}"><span class="lead-rank">${i + 1}</span><span class="lead-name">${esc(g.name)}</span><span class="lead-stats"><span title="Donkey of the Day titles"><b>🫏 ${g.titles}</b></span><span>${g.games} match${g.games === 1 ? '' : 'es'}</span><span>${(g.losses / g.games).toFixed(1)} losses each</span></span></li>`).join('')}</ol>` : ''}
+      <h3 class="hl-h">Every Donkey of the Day</h3>
+      <div class="hall-list">${prs.slice(0, 40).map(r => `<div class="hrow"><div class="hrow-top"><span class="hdate">${esc(r.date || '')}</span><span class="hroom">room ${esc(r.code || '')}</span></div><div class="hn">${esc(r.name || 'Player')}${r.title ? ` <span class="ttl3">${esc(r.title)}</span>` : ''}</div>
+        <div class="hp">${(r.players || []).map(p => `<span class="hc ${p.donkey ? 'don' : ''}">${p.donkey ? '🫏 ' : ''}${esc((p.name || '').replace(/^Bot(?=[A-Z])/, ''))} <b>${p.losses}</b></span>`).join('')}</div></div>`).join('')}</div></div>`;
   },
   /* ----- settings ----- */
   commHTML() {
@@ -1175,6 +1217,7 @@ const Fun = {
       case 'fun-comm': App.openSheet('comm'); return true;
       case 'fun-hall': App.openSheet('hall'); this.loadHall(); return true;
       case 'fun-hall-reload': this.loadHall(); return true;
+      case 'fun-hall-period': this.hallPeriod = b.dataset.k; App.renderSheet(); return true;
       case 'fun-mode': this.set.mode = b.dataset.k; this.save(); if (this.set.mode === 'off') { this.cur = null; } App.renderSheet(); this.paint(); return true;
       case 'fun-who': this.set.who = b.dataset.k; this.save(); App.renderSheet(); return true;
       case 'fun-voice': this.set.voice = b.dataset.k === '1'; this.save(); if (this.set.voice) this.test(); else this.setTalk(false); App.renderSheet(); this.paint(); return true;
@@ -1212,21 +1255,33 @@ const V7 = {
   centerHTML(m) {
     const s = m.shuf, me = App.uid, T = Engine.T;
     if (m.phase === 'SHUFFLE') {
-      if (s.by !== me) return `<h2>Shuffling</h2>${this.deckHTML(52)}<p class="status"><b>${esc(nameOf(s.by))}</b> ${m.lastResult ? 'is the Donkey, so they pick the shuffle' : 'deals first and picks the shuffle'}.</p>${s.fresh ? '<p class="note" style="color:var(--feltMuted)">A brand-new deck, still sorted by suit.</p>' : '<p class="note" style="color:var(--feltMuted)">Last hand’s trick piles are still stacked by suit.</p>'}${timerHTML(m.deadline, T.shuffle)}`;
-      const sel = App.shufPick || '', sec = !!App.shufSecret;
-      return `<h2>${m.lastResult ? 'Your shuffle, Donkey' : 'Your shuffle'}</h2><p style="margin:0">${s.fresh ? 'Brand-new deck: every suit is still in order.' : 'The deck is last hand’s piles, stacked by suit.'} Pick how you mix it.</p>
-      <div class="shufgrid" role="radiogroup" aria-label="Shuffle mode">${Engine.SHUF.map(k => { const I = SHUF_INFO[k], dis = k === m.lastShuf; return `<button class="shufopt ${sel === k ? 'on' : ''}" role="radio" aria-checked="${sel === k}" data-a="v7-shuf" data-k="${k}" ${dis ? 'disabled' : ''}><b>${I.n}</b><span class="heat" aria-label="Chaos ${I.heat} of 3">${'🌶️'.repeat(I.heat) || '⚖️'}</span><small>${dis ? 'Used last hand' : I.d}</small><em class="dealtag">${k === 'marzi' ? 'Deal: random' : 'Deal: ' + DEAL_NAME[Engine.DEAL_OF[k]]}</em></button>`; }).join('')}</div>
-      <label class="chk"><input type="checkbox" data-change="v7-secret" ${sec || sel === 'marzi' ? 'checked' : ''} ${sel === 'marzi' ? 'disabled' : ''}> Keep it secret until the cards are dealt</label>
-      <button class="btn gold" data-a="v7-shuf-go" ${sel && !App.pending ? '' : 'disabled'}>${sel ? 'Shuffle: ' + SHUF_INFO[sel].n : 'Pick a shuffle'}</button>${timerHTML(m.deadline, T.shuffle)}`;
+      if (s.by !== me) return `<div class="shuf wait"><h2>Shuffling</h2>${this.deckHTML(52)}<p class="status"><b>${esc(nameOf(s.by))}</b> ${m.lastResult ? 'is the Donkey, so they pick the shuffle' : 'deals first and picks the shuffle'}.</p>${s.fresh ? '<p class="note" style="color:var(--feltMuted)">A brand-new deck, still sorted by suit.</p>' : '<p class="note" style="color:var(--feltMuted)">Last hand’s trick piles are still stacked by suit.</p>'}${timerHTML(m.deadline, T.shuffle)}</div>`;
+      const sel = App.shufPick || '', sec = !!App.shufSecret, I = sel ? SHUF_INFO[sel] : null;
+      const chaos = ['⚖️ Fair deal', '🌶️ Slightly clumpy', '🌶️🌶️ Clumpy', '🌶️🌶️🌶️ Very clumpy'];
+      const dealOf = k => k === 'marzi' ? 'random deal' : DEAL_NAME[Engine.DEAL_OF[k]];
+      const tile = k => { const X = SHUF_INFO[k], dis = k === m.lastShuf; return `<button class="stile ${sel === k ? 'on' : ''}" role="radio" aria-checked="${sel === k}" data-a="v7-shuf" data-k="${k}" ${dis ? 'disabled' : ''}><b>${X.n}</b><span>${dis ? 'Used last hand' : dealOf(k)}</span></button>`; };
+      const groups = [['Fair deals', k => SHUF_INFO[k].heat === 0], ['A few clumps', k => SHUF_INFO[k].heat === 1], ['Clumpy, chaos for others', k => SHUF_INFO[k].heat >= 2]];
+      return `<div class="shuf"><div class="shuf-head"><h2>${m.lastResult ? 'Your shuffle, Donkey' : 'Your shuffle'}</h2><p>${s.fresh ? 'Brand-new deck: every suit is still in order.' : 'The deck is last hand’s piles, stacked by suit.'} Pick how you mix it.</p></div>
+        <div class="shuf-groups" role="radiogroup" aria-label="Shuffle mode">${groups.map(([gl, f]) => { const ks = Engine.SHUF.filter(f); return ks.length ? `<div class="sgroup"><div class="sgroup-l">${gl}</div><div class="sgrid">${ks.map(tile).join('')}</div></div>` : ''; }).join('')}</div>
+        <div class="shuf-dock">${I ? `<div class="sdet"><div class="sdet-top"><b>${I.n}</b><span class="chaos">${chaos[I.heat]}</span><span class="chaos deal">Dealt: ${dealOf(sel)}</span></div><p>${I.d}</p></div>
+          <label class="swrow"><span>Keep it secret until the cards are dealt</span><input type="checkbox" class="swin" data-change="v7-secret" ${sec || sel === 'marzi' ? 'checked' : ''} ${sel === 'marzi' ? 'disabled' : ''}></label>` : ''}
+          <button class="btn gold shuf-go" data-a="v7-shuf-go" ${sel && !App.pending ? '' : 'disabled'}>${sel ? 'Shuffle: ' + I.n : 'Tap a shuffle above to pick it'}</button>${timerHTML(m.deadline, T.shuffle)}</div></div>`;
     }
     const used = s.secret ? '🤫 Shuffled in secret.' : s.actual ? `🔀 ${esc(nameOf(s.by))} used <b>${SHUF_INFO[s.actual].n}</b>.` : '';
-    if (s.cutter !== me) return `<h2>Gaddi Kaat</h2>${this.deckHTML(52)}<p class="status">${used}<br><b>${esc(nameOf(s.cutter))}</b>, sitting left of the dealer, cuts the deck.</p>${timerHTML(m.deadline, T.deckCut)}`;
+    if (s.cutter !== me) return `<div class="cutui wait"><h2>Gaddi Kaat</h2>${this.cutVizHTML(26, true)}<p class="status">${used}<br><b>${esc(nameOf(s.cutter))}</b>, sitting left of the dealer, cuts the deck.</p>${timerHTML(m.deadline, T.deckCut)}</div>`;
     const at = App.cutAt || 26;
-    return `<h2>Gaddi Kaat</h2><p style="margin:0">${used} You sit on the dealer’s left, so you cut.</p>${this.deckHTML(52, at)}
-    <label class="cutlbl" for="cutat">Cut after card <b id="cutn">${at}</b> of 52</label><input id="cutat" class="cutrange" type="range" min="4" max="48" value="${at}" data-input="v7-cut">
-    <label class="chk"><input type="checkbox" data-change="v7-peek" ${App.cutPeek ? 'checked' : ''}> Show everyone the bottom card after the cut</label>
-    <div class="row" style="justify-content:center"><button class="btn gold" data-a="v7-cut" data-k="cut" ${App.pending ? 'disabled' : ''}>Kaat here</button><button class="btn alt" data-a="v7-cut" data-k="double" ${App.pending ? 'disabled' : ''}>Double Kaat</button><button class="btn alt" data-a="v7-cut" data-k="knock" ${App.pending ? 'disabled' : ''}>Thak-Thak (no cut)</button></div>${timerHTML(m.deadline, T.deckCut)}`;
+    return `<div class="cutui"><h2>Gaddi Kaat</h2><p class="cut-used">${used} You sit on the dealer’s left, so you cut.</p>
+      ${this.cutVizHTML(at)}
+      <div class="cut-slider"><label for="cutat">Cut after card <b id="cutn">${at}</b> of 52</label><input id="cutat" class="cutrange" type="range" min="4" max="48" value="${at}" data-input="v7-cut"></div>
+      <label class="swrow"><span>Show everyone the bottom card after the cut</span><input type="checkbox" class="swin" data-change="v7-peek" ${App.cutPeek ? 'checked' : ''}></label>
+      <div class="cut-actions"><button class="btn gold cut-main" data-a="v7-cut" data-k="cut" ${App.pending ? 'disabled' : ''}>✋ Kaat here</button><div class="cut-alt"><button class="btn alt" data-a="v7-cut" data-k="double" ${App.pending ? 'disabled' : ''}>Double Kaat</button><button class="btn alt" data-a="v7-cut" data-k="knock" ${App.pending ? 'disabled' : ''}>Thak-Thak (no cut)</button></div></div>${timerHTML(m.deadline, T.deckCut)}</div>`;
   },
+  /* the deck split in two piles, sized by where you cut */
+  cutVizHTML(at, still) {
+    const k = 12, top = Math.max(1, Math.min(k - 1, Math.round(at / 52 * k))), stack = n => `<div class="cstack">${Array.from({ length: n }, (_, i) => `<span class="dk" style="--i:${i}"></span>`).join('')}</div>`;
+    return `<div class="cutviz ${still ? 'still' : ''}" aria-hidden="true"><div class="cpile">${stack(top)}<span class="clab">Top <b>${at}</b></span></div><div class="cknife"></div><div class="cpile">${stack(k - top)}<span class="clab">Bottom <b>${52 - at}</b></span></div></div>`;
+  },
+
   shufLine(m) { const s = m.shuf; if (!s || !s.picked) return ''; const b = s.bottom ? ` Bottom card: <b>${short(s.bottom)}</b>.` : '';
     return `<p class="note shufline">${s.secret && !s.actual ? '🤫 Secret shuffle and deal, revealed after the deal.' : '🔀 ' + SHUF_INFO[s.actual].n + ', dealt ' + DEAL_NAME[s.deal] + '.'}${s.cut ? (s.cut.kind === 'knock' ? ' ✋ No cut.' : s.cut.kind === 'double' ? ' ✋ Double Kaat.' : ' ✋ Cut at ' + s.cut.at + '.') : ''}${b}</p>`; },
   planDealHTML(m, ru, left, prog) {
@@ -1247,7 +1302,7 @@ const V7 = {
     return h;
   },
   comeback(m) { const a = m.award; if (!a) return ''; const cb = m.seats.filter(u => u !== a.uid && m.losses[u] === m.target - 1);
-    return cb.length ? `<p class="badgeline">🔥 Comeback badge: ${cb.map(u => '<b>' + esc(nameOf(u)) + '</b>').join(', ')} survived at ${m.target - 1} losses.</p>` : ''; },
+    return cb.length ? `<p class="badgeline">🔥 Comeback badge: ${cb.map(u => '<b>' + esc(nameOf(u)) + '</b>').join(', ')} survived at ${m.target - 1} loss${m.target - 1 === 1 ? '' : 'es'}.</p>` : ''; },
   /* ----- your area: magic cards, peek, bets ----- */
   meHTML(m) {
     if (!m.opts || !m.seats || !m.names[App.uid]) return ''; const me = App.uid, inHand = ['TURN', 'TRICK_END', 'CUT_REVEAL'].includes(m.phase); let h = '';
@@ -1300,7 +1355,7 @@ const V7 = {
   click(a, b) {
     const m = App.pub && App.pub.match;
     switch (a) {
-      case 'v7-shuf': App.shufPick = b.dataset.k; App.render(); return true;
+      case 'v7-shuf': { const c = document.querySelector('#game .center'), top = c ? c.scrollTop : 0; App.shufPick = b.dataset.k; App.render(); const c2 = document.querySelector('#game .center'); if (c2) c2.scrollTop = top; const on = document.querySelector('.stile.on'); if (on) on.scrollIntoView({ block: 'nearest' }); return true; }
       case 'v7-shuf-go': if (App.shufPick) { App.send('SHUFFLE_PICK', { mode: App.shufPick, secret: !!App.shufSecret || App.shufPick === 'marzi' }); App.shufPick = null; App.shufSecret = false; } return true;
       case 'v7-cut': App.send('DECK_CUT', { kind: b.dataset.k, at: App.cutAt || 26, peek: !!App.cutPeek }); App.cutAt = 26; App.cutPeek = false; return true;
       case 'v7-plan': App.send('DEAL_BATCH', { plan: true }); return true;
@@ -1333,8 +1388,8 @@ const Prog = {
     if (t.id === 'teal') { r.removeProperty('--felt'); r.removeProperty('--felt2'); } else { r.setProperty('--felt', t.f); r.setProperty('--felt2', t.f2); } r.setProperty('--back', b.b); LS.set('dotd-look', { theme: t.id, back: b.id }); },
   challengeHTML() { const c = this.s && this.s.challenge; if (!c) return ''; return `<div class="chal ${c.done ? 'done' : ''}"><span aria-hidden="true">${c.done ? '✅' : '🎯'}</span><div class="grow"><div class="note">Today’s challenge${c.streak > 1 ? ` · ${c.streak}-day streak` : ''}</div><b>${esc(c.t)}</b></div></div>`; },
   lookHTML() { const lv = this.level(), look = (this.s && this.s.look) || {};
-    return `<h3 style="font-size:20px;margin-top:14px">Table colour</h3><div class="swatches">${THEMES.map(t => `<button class="sw ${look.theme === t.id ? 'on' : ''}" data-a="v7-theme" data-k="${t.id}" ${t.lvl > lv ? 'disabled' : ''} aria-pressed="${look.theme === t.id}"><span class="chip2" style="background:radial-gradient(${t.f},${t.f2})"></span>${t.n}<small>${t.lvl > lv ? '🔒 Level ' + t.lvl : ''}</small></button>`).join('')}</div>
-    <h3 style="font-size:20px;margin-top:14px">Card back</h3><div class="swatches">${BACKS.map(t => `<button class="sw ${look.back === t.id ? 'on' : ''}" data-a="v7-back" data-k="${t.id}" ${t.lvl > lv ? 'disabled' : ''} aria-pressed="${look.back === t.id}"><span class="chip2 cb" style="background:${t.b}"></span>${t.n}<small>${t.lvl > lv ? '🔒 Level ' + t.lvl : ''}</small></button>`).join('')}</div>`; }
+    return `<div class="pf-lbl">Table colour</div><div class="swatches">${THEMES.map(t => `<button class="sw ${look.theme === t.id ? 'on' : ''}" data-a="v7-theme" data-k="${t.id}" ${t.lvl > lv ? 'disabled' : ''} aria-pressed="${look.theme === t.id}"><span class="chip2" style="background:radial-gradient(${t.f},${t.f2})"></span>${t.n}<small>${t.lvl > lv ? '🔒 Level ' + t.lvl : ''}</small></button>`).join('')}</div>
+    <div class="pf-lbl">Card back</div><div class="swatches">${BACKS.map(t => `<button class="sw ${look.back === t.id ? 'on' : ''}" data-a="v7-back" data-k="${t.id}" ${t.lvl > lv ? 'disabled' : ''} aria-pressed="${look.back === t.id}"><span class="chip2 cb" style="background:${t.b}"></span>${t.n}<small>${t.lvl > lv ? '🔒 Level ' + t.lvl : ''}</small></button>`).join('')}</div>`; }
 };
 Prog.apply();
 
