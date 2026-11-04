@@ -307,7 +307,7 @@ const App = {
   tickUI() {
     document.querySelectorAll('[data-dl]').forEach(el => {
       const dl = +el.dataset.dl + this.offset, total = +el.dataset.total, left = Math.max(0, dl - Date.now());
-      const i = el.querySelector('i'); if (i) i.style.width = (100 * left / total) + '%';
+      const i = el.querySelector('i'); if (i) i.style.width = (100 * left / total) + '%'; el.classList.toggle('low', total > 0 && left / total < .2 && left > 0);
       const lab = el.nextElementSibling; if (lab && lab.classList.contains('tlabel')) lab.textContent = Math.ceil(left / 1000) + 's';
     });
     document.querySelectorAll('[data-cd]').forEach(el => { const left = Math.max(0, +el.dataset.cd + this.offset - Date.now()); el.textContent = '(' + Math.ceil(left / 1000) + ' s)';
@@ -344,7 +344,7 @@ const App = {
     if (this.sheet === 'tracker') h = `<h2>Tracker</h2>${trackerHTML()}`;
     if (this.sheet === 'story') h = `<h2>Table story</h2>${storyHTML()}`;
     if (this.sheet === 'scores') h = `<h2>Scores</h2>${scoresHTML(true)}`;
-    if (this.sheet === 'leave') h = `<h2>Leave the room?</h2><p>${this.local ? 'This practice game will end.' : (this.watching ? 'You’ll stop watching this room.' : 'Your seat is kept. If you are away during your turn, moves are made for you, and after two of them the game pauses.')}</p><div class="row"><button class="btn gold" data-a="leave-now">Leave</button>${this.isHost && this.pub && this.pub.match && !['MATCH_RESULT','INCOMPLETE'].includes(this.pub.match.phase) ? '<button class="btn alt" data-a="end-match">End match without a result</button>' : ''}</div>`;
+    if (this.sheet === 'leave') h = `<h2>Leave the room?</h2><p>${this.local ? 'This practice game will end.' : (this.watching ? 'You’ll stop watching this room.' : 'Your seat is kept. If you are away during your turn, moves are made for you, and after two of them the game pauses.')}</p><div class="row"><button class="btn gold" data-a="go-home">← Back to home</button>${this.isHost && this.pub && this.pub.match && !['MATCH_RESULT','INCOMPLETE'].includes(this.pub.match.phase) ? '<button class="btn alt" data-a="end-match">End match without a result</button>' : ''}</div>`;
     sh.dataset.kind = this.sheet;
     sh.innerHTML = `<div><div class="row" style="justify-content:flex-end"><button class="btn alt small" data-a="close-sheet">Close</button></div>${h}</div>`;
     sh.classList.remove('hidden');
@@ -605,8 +605,8 @@ function gameHTML() {
     <div class="ct">${done ? 'Out' : cnt}${i === m.dealer && m.handNo ? '<span class="badge" title="Dealer">D</span>' : ''}${extra > 0 ? `<span class="badge x" title="Gets ${extra} extra this hand">+${extra}</span>` : ''}${m.bots[u] && m.levels ? `<span class="badge x" title="${(LEVELS.find(l => l[0] === m.levels[u]) || LEVELS[1])[1]} bot">🤖<span class="lvtxt"> ${(LEVELS.find(l => l[0] === m.levels[u]) || LEVELS[1])[1]}</span></span>` : ''}</div>
     ${pipsHTML(m.losses[u])}${fxHTML(m, u)}${think && think.u === u && m.phase === 'TURN' && m.actor === u ? '<span class="fx think">🤔 thinking</span>' : ''}${historyHTML(m, u, 3)}${bubbleHTML(u)}</div>`; };
   const myI = m.seats ? m.seats.indexOf(App.uid) : -1;
-  return `<div id="game" class="ph-${m.phase} ${Fun.showdownCls(m)}"><div class="felt">
-   <div class="topbar"><span class="ttl grow">${m.handNo ? 'Hand ' + m.handNo : 'Setting up'} <span class="series" title="Series: first to ${m.target} losses">🏁 to ${m.target}</span></span>
+  return `<div id="game" class="ph-${m.phase} ${Fun.showdownCls(m)} ${m.phase === 'TURN' && m.actor === App.uid ? 'my-turn' : ''}"><div class="felt">
+   <div class="topbar"><button class="chip home" data-a="leave" aria-label="Back to the home page"><span aria-hidden="true">←</span><span class="lbl"> Home</span></button><span class="ttl grow">${m.handNo ? 'Hand ' + m.handNo : 'Setting up'} <span class="series" title="Series: first to ${m.target} losses">🏁 to ${m.target}</span></span>
     ${Net.nroom ? `<span class="reactbar ${App.reactOpen ? 'open' : ''}" aria-label="Reactions"><button class="reacttog" data-a="react-toggle" aria-expanded="${!!App.reactOpen}" aria-label="Reactions">😀</button><span class="reopts">${['👏', '😂', '🫏', '😬'].map(e => `<button data-a="react" data-e="${e}" aria-label="Send ${e}">${e}</button>`).join('')}</span></span>` : ''}
     <button class="chip mus" data-a="music" aria-label="Music: ${esc(App.musicLabel())}">♪<span class="lbl"> ${esc(App.musicLabel())}</span></button><button class="chip chatchip" data-a="chat" aria-label="Chat">💬<span class="lbl"> Chat</span>${unreadBadge()}</button>
     <button class="chip" data-a="menu" aria-label="Menu">☰<span class="lbl"> Menu</span></button></div>
