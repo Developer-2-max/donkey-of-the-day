@@ -163,10 +163,10 @@ test('Lab: shuffle power, deck cut and dealing run through the real server up to
   host.close();
 });
 
-test('Lab: with shuffle power off the deal starts directly; Blitz gives 10-second turns', async () => {
-  const { host } = await mkRoom(); await host.act('SET_FUN', { k: 'shuffle', v: false }); await host.act('SET_FUN', { k: 'blitz', v: true }); await host.act('FILL_BOTS'); await host.act('START');
+test('Lab: with shuffle power off the deal starts directly, and turns are 90 seconds', async () => {
+  const { host } = await mkRoom(); await host.act('SET_FUN', { k: 'shuffle', v: false }); assert.equal((await host.act('SET_FUN', { k: 'blitz', v: true })).reason, 'WRONG_PHASE', 'Blitz no longer exists'); await host.act('FILL_BOTS'); await host.act('START');
   const seen = await driveHost(host); assert.ok(!seen.includes('SHUFFLE') && seen.at(-1) === 'TURN', seen.join(' > '));
-  assert.equal(host.state.match.turnMs, 10000); host.close();
+  assert.equal(host.state.match.turnMs, 90000); host.close();
 });
 
 test('Lab: nicknames and inside jokes are shared, and filtered in public rooms only', async () => {

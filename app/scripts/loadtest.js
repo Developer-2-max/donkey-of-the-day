@@ -1,7 +1,7 @@
 'use strict';
 /* Load test: many rooms playing at once, with scripted players.
    Usage:  node scripts/loadtest.js [--rooms 20] [--minutes 2] [--url https://your-server]
-   Without --url it starts a throwaway local server. Each room has 5 seats (3 scripted humans + 2 bots) and 2 watchers, in Blitz mode so the
+   Without --url it starts a throwaway local server. Each room has 5 seats (3 scripted humans + 2 bots) and 2 watchers, so the
    table keeps moving. Humans play a simple legal-looking strategy, including the shuffle pick, deck cut and deal of the Lab rules; moves the rules reject still count for round-trip timing.
    "Ping" is a cheap action round trip every second per player; "move" is a real card move round trip.
    Pass criteria from the plan: p95 round trip under 200 ms, no dropped rooms, server CPU under 60%. CPU is shown as seconds of
@@ -24,7 +24,7 @@ async function main() {
     const guests = [], watchers = [];
     for (let i = 0; i < 2; i++) { const g = player(srv.url); await g.ready; await g.call('join', { code, name: `P${r}-${i}` }); guests.push(g); }
     for (let i = 0; i < 2; i++) { const w = player(srv.url); await w.ready; await w.call('join', { code, name: `W${r}-${i}`, watch: true }); watchers.push(w); }
-    await host.act('SET_SEATS', { n: 5 }); await host.act('SET_FUN', { k: 'blitz', v: true }); await host.act('SET_FUN', { k: 'powers', v: true }); await host.act('SET_TARGET', { n: 2 }); await host.act('FILL_BOTS', { level: 'easy' });
+    await host.act('SET_SEATS', { n: 5 }); await host.act('SET_FUN', { k: 'powers', v: true }); await host.act('SET_TARGET', { n: 2 }); await host.act('FILL_BOTS', { level: 'easy' });
     const res = await host.act('START'); if (!res.ok) throw new Error('could not start room ' + r + ': ' + res.reason);
     [host, ...guests, ...watchers].forEach(p => p.socket.on('state', () => stateMsgs++));
     [host, ...guests, ...watchers].forEach(p => p.socket.on('disconnect', () => { if (!stopping) dropped++; }));

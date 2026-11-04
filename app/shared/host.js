@@ -14,7 +14,7 @@ const QUIPS = {
   selfDonkey: ['Arre yaar, phir se main? 🫏', 'Agli baar dekh lena', 'Gadha nahi, strategist hoon main'],
   tease: ['Badhai ho, naya title! 🎉', 'Hee-haw! 🫏', 'Kya khel gaye boss 😂', 'Title mubarak ho!']
 };
-const FUN_DEFAULTS = { shuffle: true, powers: false, blitz: false, bets: true, mute: false, spice: 'device' };
+const FUN_DEFAULTS = { shuffle: true, powers: false, bets: true, mute: false, spice: 'device' };
 const AWAY_TURN_MS = 15000;      // when the player whose turn it is has lost connection, the table waits this long
 
 class Host {
@@ -36,7 +36,7 @@ class Host {
     L.target = L.target || 5; L.watchers = L.watchers || {}; L.botSpeed = L.botSpeed || 'real'; L.targets = L.targets || []; L.kicked = L.kicked || {};
     if (L.hints === undefined) L.hints = true;
     L.public = !!L.public; L.fun = Object.assign({}, FUN_DEFAULTS, L.fun || {}); L.nick = L.nick || {}; L.jokes = L.jokes || [];
-    if (L.fun.blitz === undefined) L.fun.blitz = !!L.blitz; delete L.blitz; delete L.commentary;
+    delete L.fun.blitz; delete L.blitz; delete L.commentary;   // Blitz was removed: rooms saved with it on go back to normal turns
     Object.values(L.members || {}).forEach(m => { delete m.ready; delete m.audio; delete m.pub; });
     const mu = s.music || {};
     if (!(mu.kind === 'song' || (mu.kind === 'catalog' && catalogTrack(mu.track)))) s.music = { kind: 'catalog', track: DEFAULT_TRACK, startedAt: mu.startedAt || Date.now(), by: mu.by || null };
@@ -86,7 +86,7 @@ class Host {
         if ('hints' in p) L.hints = !!p.hints; break;
       case 'SET_TARGET': if (!isHost || !inLobby) return 'NOT_HOST'; L.target = [2, 3, 5].includes(p.n) ? p.n : 5; break;
       case 'SET_FUN': { if (!isHost || !inLobby) return 'NOT_HOST'; const F = L.fun;
-        if (['shuffle', 'powers', 'blitz', 'bets', 'mute'].includes(p.k)) F[p.k] = !!p.v; else if (p.k === 'spice' && ['device', 'off', 'halka', 'teekha'].includes(p.v)) F.spice = p.v; else return 'WRONG_PHASE'; break; }
+        if (['shuffle', 'powers', 'bets', 'mute'].includes(p.k)) F[p.k] = !!p.v; else if (p.k === 'spice' && ['device', 'off', 'halka', 'teekha'].includes(p.v)) F.spice = p.v; else return 'WRONG_PHASE'; break; }
       case 'SET_NICK': { const known = L.members[p.u] || (this.st && this.st.names[p.u]); if (!m && !inMatch) return 'NOT_IN_MATCH'; if (!known) return 'WRONG_PHASE';
         const x = String(p.x || '').replace(/\s+/g, ' ').trim().slice(0, 20); if (x) L.nick[p.u] = x; else delete L.nick[p.u]; break; }
       case 'ADD_JOKE': { if (!m && !inMatch) return 'NOT_IN_MATCH'; const x = String(p.x || '').replace(/\s+/g, ' ').trim().slice(0, 120); if (!x) return 'EMPTY_NAME';
@@ -149,7 +149,6 @@ class Host {
       const quick = this.lobby.botSpeed === 'quick';
       let ms = dealing ? (st.phase === 'DEALING' ? 150 + Math.random() * 250 : 1500 + Math.random() * 700) :   // a bot dealing one card at a time must not keep the table waiting a minute
        quick ? 1000 + Math.random() * 2000 : 5000 + Math.random() * 10000;
-      if (st.turnMs && st.turnMs < 20000 && !dealing) ms = Math.min(ms, 1500 + Math.random() * 3500);   // Blitz: bots must move inside the 10 s turn
       this.botTimer = { key: botKey, id: setTimeout(() => { this.botTimer = null; const a = Engine.botAction(this.st, u); if (a && Engine.apply(this.st, u, a, Date.now()) === null) this.changed(); else this.schedule(); }, ms), at: Date.now() + ms, u };
     }
     // bots crown others when a title has options and no human picked within 6 seconds

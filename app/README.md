@@ -12,7 +12,7 @@ Everything from the Lab 2.6 source (`../donkey-of-the-day-v2.6-lab`) now runs he
 |---|---|
 | **Donkey's Shuffle Power** | 11 shuffle modes, each locked to its own deal style (Shuffle = Deal), secret shuffles, "Gadhe Ki Marzi". The Donkey picks the shuffle, the player on their left cuts the deck (Gaddi Kaat: cut, Double Kaat, Thak-Thak). The engine is the Lab engine, unchanged. |
 | **Magic cards** | Peek, Shield, Swap, Reverse. The first player out each hand earns one. A Peek result is sent only to the player who used it. |
-| **Bet on the Donkey, Blitz, Mute the Donkey** | Host switches in the lobby ("Fun rules"). Blitz is 10-second turns. Mute the Donkey is enforced by the server as well as hidden in the page. |
+| **Bet on the Donkey, Mute the Donkey** | Host switches in the lobby ("Fun rules"). Mute the Donkey is enforced by the server as well as hidden in the page. Turns are 90 seconds. |
 | **Commentary** | Bablu Bhaiya (Bhojpuri) and Commentator Chacha (cricket), Halka and Teekha tiers, the Lab's 87 lines with names, nicknames and inside jokes filled in. Final-two drumroll, hee-haw and fanfare sound effects. The phone's built-in voice is **gone**; a line plays a recording when one exists on the server (see "Adding the commentary voices"), otherwise it is text in the strip. |
 | **Nicknames and inside jokes** | Shared by the room, used in commentary. Filtered in public rooms. |
 | **Throws** | Tomato, chappal, egg, rose, hee-haw, thrown at a player. The server checks and rate-limits them, and bots answer back. |

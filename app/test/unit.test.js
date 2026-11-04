@@ -88,16 +88,18 @@ function simulate(players, o = {}) {
 }
 const bots = n => Array.from({ length: n }, (_, i) => ({ uid: 'b' + i, name: 'Bot' + i, bot: true, level: 'medium' }));
 test('four- and five-bot matches finish with a Donkey of the Day, with every Lab fun rule on', () => {
-  for (const n of [4, 5]) for (const fun of [undefined, { shuffle: true, powers: true, bets: true, blitz: true }]) {
+  for (const n of [4, 5]) for (const fun of [undefined, { shuffle: true, powers: true, bets: true }]) {
     const st = simulate(bots(n), { fun });
     assert.equal(st.phase, 'MATCH_RESULT', n + ' players ended in ' + st.phase);
     assert.ok(st.award && st.losses[st.award.uid] >= 2); assert.ok(Engine.checkConservation(st), 'no card lost or duplicated');
   }
 });
-test('Blitz is a fun rule: 10-second turns', () => {
-  const st = Engine.createMatch({ players: bots(4), now: 0, fun: { blitz: true } });
-  assert.equal(st.turnMs, 10000); assert.equal(Engine.publicView(st).turnMs, 10000);
-  assert.equal(Engine.createMatch({ players: bots(4), now: 0 }).turnMs, Engine.T.turn);
+test('turns are 90 seconds, and Blitz is gone: it cannot be switched on, and old rooms that had it are reset', () => {
+  const st = Engine.createMatch({ players: bots(4), now: 0 });
+  assert.equal(st.turnMs, 90000); assert.equal(Engine.publicView(st).turnMs, 90000);
+  const h = mk(); assert.equal(h.handle('host', { type: 'SET_FUN', payload: { k: 'blitz', v: true } }), 'WRONG_PHASE'); assert.ok(!('blitz' in h.lobby.fun));
+  const old = mk(); old.restore({ lobby: Object.assign({}, old.lobby, { fun: Object.assign({}, old.lobby.fun, { blitz: true }), blitz: true }), music: old.music, st: null, seq: 0 });
+  assert.ok(!('blitz' in old.lobby.fun)); old.handle('host', { type: 'FILL_BOTS' }); old.handle('host', { type: 'START' }); assert.equal(old.st.turnMs, 90000);
 });
 test('the engine offers the 11 shuffle modes and 4 magic cards', () => {
   assert.equal(Engine.SHUF.length, 11); assert.deepEqual([...Engine.POWERS], ['peek', 'shield', 'swap', 'reverse']);
@@ -116,10 +118,10 @@ test('Host: Lab fun rules are host-only, lobby-only and validated; they reach th
   assert.equal(h.handle('guest', { type: 'SET_FUN', payload: { k: 'powers', v: true } }), 'NOT_HOST');
   assert.equal(h.handle('host', { type: 'SET_FUN', payload: { k: 'nonsense', v: true } }), 'WRONG_PHASE');
   assert.equal(h.handle('host', { type: 'SET_FUN', payload: { k: 'spice', v: 'volcano' } }), 'WRONG_PHASE');
-  for (const [k, v] of [['powers', true], ['blitz', true], ['mute', true], ['shuffle', false]]) assert.equal(h.handle('host', { type: 'SET_FUN', payload: { k, v } }), null);
+  for (const [k, v] of [['powers', true], ['mute', true], ['shuffle', false]]) assert.equal(h.handle('host', { type: 'SET_FUN', payload: { k, v } }), null);
   assert.equal(h.handle('host', { type: 'SET_FUN', payload: { k: 'spice', v: 'teekha' } }), null);
   h.handle('host', { type: 'FILL_BOTS' }); h.handle('host', { type: 'START' });
-  assert.equal(JSON.stringify(h.st.opts), JSON.stringify({ shuffle: false, powers: true, blitz: true, bets: true })); assert.equal(h.st.turnMs, 10000);
+  assert.equal(JSON.stringify(h.st.opts), JSON.stringify({ shuffle: false, powers: true, blitz: false, bets: true })); assert.equal(h.st.turnMs, 90000);
   assert.equal(h.handle('host', { type: 'SET_FUN', payload: { k: 'bets', v: false } }), 'NOT_HOST', 'locked once the match starts');
 });
 test('Host: nicknames and inside jokes', () => {

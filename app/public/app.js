@@ -393,7 +393,7 @@ function rulesHTML(open = true) {
 <li>If the player who should lead is out, the lead passes clockwise.</li>
 <li>If everyone empties on the final trick, the highest card of that trick takes the loss.</li>
 <li>If the same position comes round three times in one hand, it’s a stalemate: whoever holds the most cards takes the loss (the player due to lead, on a tie).</li>
-<li>90 seconds per move (10 seconds in Blitz mode). When time runs out, your lowest legal card is played, or one lowest card is cut. After two automatic moves in a row the game pauses up to 2 minutes for you, then ends without an award. If your phone drops, your seat is held, and moves are made for you if it is your turn.</li>
+<li>90 seconds per move. When time runs out, your lowest legal card is played, or one lowest card is cut. After two automatic moves in a row the game pauses up to 2 minutes for you, then ends without an award. If your phone drops, your seat is held, and moves are made for you if it is your turn.</li>
 <li>Music is optional. The room plays one song for everyone, in sync. Any seated player can change it, except the player with the most losses. You can mute it, lower it, or use your own music app.</li></ul></details>`;
 }
 function musicHTML() {
@@ -491,7 +491,6 @@ function lobbyHTML() {
 const RULES_INFO = [
   ['shuffle', '🔀', 'Shuffle power', 'The Donkey picks the shuffle, the player on their left cuts the deck.'],
   ['powers', '✨', 'Magic cards', 'First one out each hand earns Peek, Shield, Swap or Reverse.'],
-  ['blitz', '⚡', 'Blitz', '10 seconds per move instead of 90.'],
   ['bets', '🎲', 'Bet on the Donkey', 'Players who are out guess who loses the hand.'],
   ['mute', '🤐', 'Mute the Donkey', 'The Donkey can’t chat during the next hand.']
 ];
@@ -529,7 +528,7 @@ function lobbySeatsHTML(p, L, H) {
 }
 
 function lobbyRulesHTML(L, H) {
-  const F = L.fun || {}, timer = F.blitz ? '10 seconds (Blitz)' : '90 seconds';
+  const F = L.fun || {};
   const row = ([k, ico, name, desc]) => H
     ? `<button class="rule-row" role="switch" aria-checked="${!!F[k]}" data-a="v7-fun" data-k="${k}" data-v="${F[k] ? '0' : '1'}"><span class="rule-ico" aria-hidden="true">${ico}</span><span class="rule-txt"><b>${name}</b><span>${desc}</span></span><span class="switch" aria-hidden="true"></span></button>`
     : `<div class="rule-row static"><span class="rule-ico" aria-hidden="true">${ico}</span><span class="rule-txt"><b>${name}</b><span>${desc}</span></span><span class="tagp ${F[k] ? 'go' : ''}">${F[k] ? 'On' : 'Off'}</span></div>`;
@@ -541,7 +540,7 @@ function lobbyRulesHTML(L, H) {
     ${line('Series', H ? lbSeg('data-a="series" data-n="{k}"', [[2, '2'], [3, '3'], [5, '5']], L.target || 5) : `<b>${L.target || 5}</b>`, 'First to this many Donkey losses is Donkey of the Day. Fixed once the match starts.')}
     ${line('Seats', H ? lbSeg('data-a="seats" data-n="{k}"', [[4, '4'], [5, '5']], L.seatsWanted) : `<b>${L.seatsWanted}</b>`)}
     ${L.seatsWanted === 5 ? line('Five-player deal', H ? lbSeg('data-a="mode" data-m="{k}"', [['single', '12 to one'], ['split', '11 to two']], L.mode) : `<b>${L.mode === 'single' ? '12 to one player' : '11 to two players'}</b>`) : ''}
-    ${line('Turn timer', `<b>${timer}</b>`, 'Change it with the Blitz rule above.')}
+    ${line('Turn timer', '<b>90 seconds</b>', 'Per move. If it runs out, a move is made for you.')}
     ${line('Bot thinking time', H ? lbSeg('data-a="speed" data-k="{k}"', [['real', '5–15 s'], ['quick', 'Quick']], L.botSpeed === 'quick' ? 'quick' : 'real') : `<b>${L.botSpeed === 'quick' ? 'Quick' : '5–15 s'}</b>`)}
     ${line('Commentary', H ? lbSeg('data-a="v7-spice" data-k="{k}"', SPICE_OPTS, F.spice || 'device') : `<b>${spiceName}</b>`, 'Bablu Bhaiya and Chacha. “Each phone” lets everyone choose for themselves.', 'stack')}
   </section>`;
