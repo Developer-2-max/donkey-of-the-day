@@ -779,7 +779,7 @@ function renderChat() {
   $('#chatsub').textContent = `${ppl.length} player${ppl.length === 1 ? '' : 's'} · ${onl} online${wat ? ' · ' + wat + ' watching' : ''}`;
   const box = $('#chatlist'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60, grew = list.length > (App.chatCount || 0);
   box.innerHTML = list.length ? chatMessagesHTML(list)
-    : `<div class="chat-empty"><div class="ce-ico" aria-hidden="true">🫏</div><b>Say hello to the table</b><span>Players and watchers can all read this chat.</span><div class="ce-chips">${CHAT_HELLO.map(t => `<button class="chip2" data-a="quick-chat" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>`;
+    : `<div class="chat-empty"><div class="ce-ico" aria-hidden="true">🫏</div><b>Say hello to the table</b><span>Players and watchers can all read this chat.</span><div class="ce-chips">${CHAT_HELLO.map(t => `<button class="qchip" data-a="quick-chat" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>`;
   if (atBottom || !App.chatCount) { box.scrollTop = box.scrollHeight; $('#chatnew').classList.add('hidden'); }
   else if (grew) { const last = list[list.length - 1]; if (last && last.u !== App.uid) $('#chatnew').classList.remove('hidden'); else box.scrollTop = box.scrollHeight; }
   App.chatCount = list.length;
@@ -793,7 +793,7 @@ function renderChat() {
   const open = !!App.teaseOpen && others.length > 0;
   tz.innerHTML = others.length ? `<button class="tease-toggle" data-a="tease-toggle" aria-expanded="${open}">😈 Tease <span aria-hidden="true">${open ? '▾' : '▸'}</span></button>` +
     (open ? `<div class="tease-panel"><label class="note" for="teaseto">At</label><select id="teaseto" class="lvl" data-change="tease-to">${others.map(u => `<option value="${esc(u)}" ${u === App.teaseTarget ? 'selected' : ''}>${esc(nameOf(u))}</option>`).join('')}</select>
-      <div class="teaserow">${TEASES.map(t => `<button class="chip2" data-a="tease" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>` : '') : '';
+      <div class="teaserow">${TEASES.map(t => `<button class="qchip" data-a="tease" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>` : '') : '';
   document.querySelectorAll('.unread').forEach(u => u.remove());
   const n = list.length - App.chatSeen;
   if (n > 0) document.querySelectorAll('[data-a="chat"]').forEach(b => b.insertAdjacentHTML('beforeend', ` <span class="unread">${n > 9 ? '9+' : n}</span>`));

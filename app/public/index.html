@@ -760,8 +760,18 @@ button.rule-row:hover{ background:rgba(127,127,127,.06); }
 .cm.mine .mention{ background:rgba(255,255,255,.2); }
 .cm-acts{ display:none; gap:12px; margin:3px 8px 0; }
 .cm:hover .cm-acts, .cm:focus-within .cm-acts{ display:flex; }
-.chat-empty{ margin:auto; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; padding:24px 14px; color:var(--muted); }
-.chat-empty b{ color:var(--ink); font-size:17px; } .ce-ico{ font-size:42px; line-height:1; } .ce-chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:10px; }
+.chat-empty{ margin:auto; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; padding:24px 16px; color:var(--muted); max-width:300px; }
+.chat-empty b{ color:var(--ink); font-size:16px; } .chat-empty span{ font-size:14px; line-height:1.35; } .ce-ico{ font-size:38px; line-height:1; margin-bottom:4px; } .ce-chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:12px; }
+/* bubbles: clearly lighter than the panel in dark mode, still calm in light mode */
+:root{ --bubOther:var(--page); --bubMine:var(--felt); }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bubOther:#1A3F48; --bubMine:#1E6F80; } }
+:root[data-theme="dark"]{ --bubOther:#1A3F48; --bubMine:#1E6F80; }
+.cm-bubble{ background:var(--bubOther); } .cm.mine .cm-bubble{ background:var(--bubMine); }
+.tease-panel{ gap:6px 8px; padding-bottom:8px; } .tease-panel label{ margin:0; } .tease-panel select.lvl{ min-height:34px; font-size:14px; padding:2px 8px; }
+.tease-panel .teaserow{ padding-bottom:4px; scrollbar-width:thin; }
+.qchip{ flex:none; border:1.5px solid var(--line); background:var(--page); color:var(--ink); border-radius:18px; padding:7px 13px; font-size:14px; line-height:1.2; white-space:nowrap; min-height:36px; }
+.qchip:hover{ background:var(--surface); border-color:var(--muted); } .qchip:active{ transform:scale(.97); }
+.teaserow .qchip{ font-size:13px; padding:6px 11px; }
 .chatnew{ position:absolute; left:50%; bottom:10px; transform:translateX(-50%); border:0; border-radius:20px; padding:7px 14px; font-size:13px; font-weight:700; background:var(--marigold); color:#1E1606; box-shadow:0 4px 14px rgba(0,0,0,.3); }
 .teases{ display:block; padding:0 12px; border-top:1.5px solid var(--line); }
 .tease-toggle{ display:flex; align-items:center; gap:6px; width:100%; background:none; border:0; padding:9px 2px; color:var(--muted); font-weight:700; font-size:14px; min-height:40px; }
