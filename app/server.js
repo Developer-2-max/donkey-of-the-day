@@ -8,6 +8,7 @@ const { makeFilter } = require('./lib/moderation');
 const { Profiles } = require('./lib/profiles');
 const { Hall } = require('./lib/hall');
 const { loadShared } = require('./lib/rules');
+const { entriesFor } = require('./lib/history');
 const { Buckets } = require('./lib/ratelimit');
 const { Accounts } = require('./lib/accounts');
 const { verifyIdToken } = require('./lib/google');
@@ -104,6 +105,7 @@ function progress(room, uid, ev) {
 }
 function recordMatch(room, st) {
   hall.add(st, room.code, u => st.names[u] || 'Player');
+  entriesFor(st, room.code).forEach(({ uid, entry }) => profiles.addHistory(accounts.keyFor(uid), entry));   // match history, per account (or per browser for guests)
   const humans = st.seats.filter(u => !st.bots[u]);
   profiles.recordMatch(humans.map(u => ({ uid: accounts.keyFor(u), name: st.names[u], handsSafe: Math.max(0, st.handNo - (st.losses[u] || 0)), donkey: st.award && st.award.uid === u })),
     { room: room.code, title: st.award && st.titleOf ? st.titleOf[st.award.uid] || null : null, date: st.award ? st.award.date : null, losses: st.award ? st.losses[st.award.uid] : 0, at: Date.now() });
@@ -117,6 +119,37 @@ for (const f of fs.readdirSync(path.join(DATA, 'rooms'))) {
 // every minute: save and close rooms with nobody connected for IDLE_CLOSE_MS; hourly: purge expired room files
 setInterval(() => { for (const [, r] of [...rooms]) if (!r.sockets.size && Date.now() - r.lastActive > IDLE_CLOSE_MS) closeRoom(r); }, +process.env.SWEEP_MS || 60e3).unref();
 setInterval(() => { for (const f of fs.readdirSync(path.join(DATA, 'rooms'))) { const p = path.join(DATA, 'rooms', f); try { if (Date.now() - fs.statSync(p).mtimeMs > ROOM_TTL_MS && !rooms.has(f.replace(/\.json$/, ''))) fs.unlinkSync(p); } catch (e) {} } limits.sweep(); }, 3600e3).unref();
+
+/* ---- sessions: which rooms a player can come back to ---- */
+const seatedIn = (lobby, st) => st ? Object.keys(st.names || {}) : Object.keys((lobby && lobby.members) || {});
+let diskRooms = { at: 0, rows: [] };
+function savedRoomRows() {   // rooms that are saved on disk but not loaded in memory (cached for 10 s: this reads files)
+  if (Date.now() - diskRooms.at < 10e3) return diskRooms.rows;
+  const rows = []; let files = []; try { files = fs.readdirSync(path.join(DATA, 'rooms')); } catch (e) {}
+  for (const f of files) { const code = f.replace(/\.json$/, ''); if (!/^[A-Z]{5}$/.test(code)) continue; if (rooms.has(code)) continue;
+    try { const d = JSON.parse(fs.readFileSync(path.join(DATA, 'rooms', f), 'utf8')); if (Date.now() - d.at > ROOM_TTL_MS) continue; rows.push({ code, lobby: d.host && d.host.lobby, st: d.host && d.host.st, at: d.at, creator: d.creator, online: 0 }); } catch (e) {} }
+  diskRooms = { at: Date.now(), rows }; return rows;
+}
+function myRooms(uids) {
+  const set = new Set(uids), out = [];
+  const take = (code, lobby, st, at, creator, online) => {
+    const seated = seatedIn(lobby, st), mine = seated.find(u => set.has(u)); if (!mine) return;
+    const nm = u => (st && st.names && st.names[u]) || (lobby.members[u] && lobby.members[u].name) || 'Player';
+    out.push({ code, phase: !st ? 'lobby' : st.phase === 'MATCH_RESULT' ? 'finished' : st.phase === 'INCOMPLETE' ? 'ended' : 'playing', at, me: nm(mine), others: seated.filter(u => u !== mine).map(nm).slice(0, 4), hand: st ? st.handNo : 0, isHost: set.has(creator), public: !!(lobby && lobby.public), online });
+  };
+  for (const r of rooms.values()) take(r.code, r.host.lobby, r.host.st, r.lastActive, r.host.uid, new Set([...r.sockets].map(s => s.data.uid)).size);
+  for (const x of savedRoomRows()) take(x.code, x.lobby || { members: {} }, x.st, x.at, x.creator, 0);
+  return out.sort((a, b) => b.at - a.at).slice(0, 12);
+}
+/* a signed-in player opens a room code from a new device: if their seat belongs to another of their devices (and that one is not connected), the seat moves here */
+function claimSeat(room, uid) {
+  if (!accounts.who(uid)) return false;
+  const seated = new Set(seatedIn(room.host.lobby, room.host.st)); if (seated.has(uid)) return false;
+  const old = accounts.uidsOf(uid).find(u => u !== uid && seated.has(u) && !online(room, u)); if (!old) return false;
+  room.host.swapUid(old, uid); room.chat.forEach(c => { if (c.u === old) c.u = uid; });
+  for (const s of Object.values(room.songs)) if (s.by === old) s.by = uid;
+  return true;
+}
 
 /* ---- HTTP: the page, shared code, audio, songs and uploads ---- */
 const app = express();
@@ -144,7 +177,9 @@ function audioManifest() {
 app.get('/audio/manifest.json', (req, res) => { res.set('Cache-Control', 'no-cache'); res.json(audioManifest()); });
 app.use('/audio', express.static(AUDIO_DIR, { maxAge: '7d', index: false, dotfiles: 'deny' }));   // range requests work, so phones can seek to the shared position
 // code and pages revalidate on every load (cheap 304s), so an update shows up as soon as the server restarts; icons can be cached
-const fresh = { index: false, etag: true, setHeaders: (res, p) => res.set('Cache-Control', /\.(html|js|webmanifest)$/.test(p) ? 'no-cache' : 'public, max-age=86400') };
+const fresh = { index: false, etag: true, setHeaders: (res, p) => res.set('Cache-Control', /\.(html|js|css|webmanifest)$/.test(p) ? 'no-cache' : 'public, max-age=86400') };
+// the website: / is the landing page, /rules the guide, /account the player's games and devices, /play the game. Old invite links (/?room=ABCDE) still land in the right room.
+app.get('/', (req, res, next) => { const room = String(req.query.room || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5); if (room) return res.redirect(302, '/play?room=' + room); next(); });
 app.use('/shared', express.static(path.join(__dirname, 'shared'), fresh));
 app.use(express.static(path.join(__dirname, 'public'), Object.assign({}, fresh, { index: 'index.html', extensions: ['html'] })));
 
@@ -180,7 +215,7 @@ const io = new Server(server, { maxHttpBufferSize: 64e3, pingInterval: 20000, pi
 io.use((socket, next) => { const { uid, secret } = socket.handshake.auth || {}; if (!checkIdentity(uid, secret)) return next(new Error('BAD_IDENTITY')); socket.data.uid = uid; next(); });
 
 io.on('connection', socket => {
-  const uid = socket.data.uid; let room = null;
+  const uid = socket.data.uid; let room = null; accounts.touch(uid, socket.handshake.headers['user-agent']);
   const limited = kind => !limits.take(uid, kind);
   const safe = fn => (...a) => { try { return fn(...a); } catch (e) { console.error('handler error', e); const ack = a[a.length - 1]; if (typeof ack === 'function') ack({ error: 'SERVER' }); } };
   const enter = r => { if (room && room !== r) exit(); room = r; r.sockets.add(socket); socket.join('r:' + r.code); r.lastActive = Date.now();
@@ -199,8 +234,9 @@ io.on('connection', socket => {
     if (typeof ack !== 'function' || limited('join')) return;
     const code = String((d && d.code) || '').toUpperCase(); const r = rooms.get(code) || loadRoom(code); if (!r) return ack({ error: 'NO_ROOM' });
     const nm = String((d && d.name) || '').replace(/\s+/g, ' ').trim().slice(0, 24) || 'Player', shown = r.public ? filter.clean(nm) : nm;
+    const claimed = !d.watch && claimSeat(r, uid); if (claimed) r.host.changed();
     if (uid !== r.host.uid) { if (r.host.memberJoined(uid, { name: shown, joinedAt: Date.now(), watch: !!d.watch, left: false })) r.host.changed(); }
-    enter(r); profiles.touch(accounts.keyFor(uid), nm); ack({ ok: true, public: r.public });
+    enter(r); profiles.touch(accounts.keyFor(uid), nm); ack({ ok: true, public: r.public, claimed: !!claimed });
   }));
   socket.on('leave', safe((d, ack) => {
     if (room && uid !== room.host.uid && !room.host.st) { if (room.host.memberJoined(uid, { left: true, watch: !!room.host.lobby.watchers[uid] })) room.host.changed(); }
@@ -246,12 +282,19 @@ io.on('connection', socket => {
     try {
       if (!n || Date.now() - n.at > 5 * 60e3) throw Object.assign(new Error('BAD_NONCE'), { code: 'BAD_NONCE' });
       const g = await verifyIdToken(d && d.credential, { clientId: GOOGLE_CLIENT_ID, nonce: n.nonce });
-      const prev = accounts.keyFor(uid), r = accounts.signIn(uid, g.sub, g.name);
+      const prev = accounts.keyFor(uid), r = accounts.signIn(uid, g.sub, g.name, socket.handshake.headers['user-agent']);
       profiles.merge(prev, r.to); profiles.touch(r.to, g.name);          // progress made before signing in joins the account
       ack({ ok: true, name: r.account.name });
     } catch (e) { ack({ error: e.code || 'BAD_TOKEN' }); }
   }));
   socket.on('logout', safe((d, ack) => { accounts.signOut(uid); if (typeof ack === 'function') ack({ ok: true }); }));
+  /* sessions: match history, rooms to resume, signed-in devices */
+  socket.on('history', safe((d, ack) => { if (typeof ack === 'function') ack({ rows: profiles.history(accounts.keyFor(uid)), signedIn: !!accounts.who(uid) }); }));
+  socket.on('my-rooms', safe((d, ack) => { if (typeof ack === 'function' && !limited('join')) ack({ rows: myRooms(accounts.uidsOf(uid)), signedIn: !!accounts.who(uid) }); }));
+  socket.on('devices', safe((d, ack) => { if (typeof ack === 'function') ack({ rows: accounts.devices(uid) }); }));
+  const kick = uids => { for (const s of io.sockets.sockets.values()) if (uids.includes(s.data.uid)) s.emit('signed-out'); };
+  socket.on('logout-device', safe((d, ack) => { if (typeof ack !== 'function' || limited('login')) return; const gone = accounts.signOutDevice(uid, String((d && d.id) || '')); if (gone) kick([gone]); ack({ ok: !!gone, rows: accounts.devices(uid) }); }));
+  socket.on('logout-all', safe((d, ack) => { if (typeof ack !== 'function' || limited('login')) return; const gone = accounts.signOutAll(uid); kick(gone); ack({ ok: true, signedOut: gone.length }); }));
   socket.on('export-data', safe((d, ack) => { if (typeof ack !== 'function' || limited('join')) return;
     ack({ exportedAt: new Date().toISOString(), profile: profiles.get(accounts.keyFor(uid)) || null,
       account: accounts.who(uid), chat: [...rooms.values()].flatMap(r => r.chat.filter(c => c.u === uid).map(c => ({ room: r.code, at: c.t, text: c.x }))),

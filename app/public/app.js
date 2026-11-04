@@ -31,7 +31,7 @@ const Net = {
     this.ident = this.identity(); this.uid = this.ident.uid;
     const s = this.socket = io({ auth: { uid: this.ident.uid, secret: this.ident.secret }, transports: ['websocket', 'polling'] });
     s.on('connect', () => {
-      this.connected = true; Prog.load();
+      this.connected = true; Prog.load(); App.loadRooms();
       if (App.code && !App.local && App.view === 'room') App.rejoin();   // after a dropped connection the server replays the full state
       else if (!this.autoTried) { this.autoTried = true; const last = LS.get('dotd-last');
         // a reload or reopened invite link puts you straight back in your seat
@@ -46,6 +46,7 @@ const Net = {
     s.on('songs', songs => { App.songs = songs || {}; if (App.sheet === 'music') App.renderSheet(); });
     s.on('presence', uids => { App.online = new Set(uids); App.render(); });
     s.on('react', m => Fun.onReact(m.by, m));
+    s.on('signed-out', () => { App.toast('You were signed out on this device.'); Prog.load(); App.loadRooms(); });
     s.on('progress', m => { if (m && m.toast) App.toast(m.toast); Prog.load(); });
     this.ready = true;
   },
@@ -119,7 +120,7 @@ const cardStatic = (c, cls = '') => cardHTML(c, cls, 'tabindex="-1" disabled sty
 const App = {
   view: 'home', uid: null, name: '', code: null, host: null, isHost: false, local: false, pub: null, hand: [], sel: [], pending: null,
   extra: null, offset: 0, lastRecv: 0, online: new Set(), dealCount: 3, seatOrder: null, musicKey: '', homeMsg: '', joining: false, createPublic: false, profile: null, mutedUsers: new Set(LS.get('dotd-muted') || []), suitMode: LS.get('dotd-suits') || 'both', practiceLevel: LS.get('dotd-botlevel') || 'medium',
-  musicPick: (LS.get('dotd-music') || {}).src === 'own' ? { src: 'own' } : { src: 'room' }, chatDocs: {}, localChat: [], resultHidden: null, chatOpen: false, chatSeen: 0, chatCount: 0, teaseOpen: LS.get('dotd-tease') === true, openSets: new Set(), watching: false, songs: {}, localSongs: [], teaseTarget: '', clipJob: null,
+  myRooms: [], musicPick: (LS.get('dotd-music') || {}).src === 'own' ? { src: 'own' } : { src: 'room' }, chatDocs: {}, localChat: [], resultHidden: null, chatOpen: false, chatSeen: 0, chatCount: 0, teaseOpen: LS.get('dotd-tease') === true, openSets: new Set(), watching: false, songs: {}, localSongs: [], teaseTarget: '', clipJob: null,
 
   async boot() {
     this.name = LS.get('dotd-name') || '';
@@ -127,7 +128,7 @@ const App = {
     Net.init(); this.uid = Net.uid;
     Commentary.loadManifest().then(() => { this.musicKey = ''; if (this.pub) this.syncMusic(); });
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-    // an invite link (/?room=ABCDE) fills in the code on the join screen
+    // an invite link (/play?room=ABCDE) fills in the code on the join screen
     if (Net.want) { const t = setInterval(() => { const el = document.getElementById('code'); if (el) { el.value = Net.want.toUpperCase(); clearInterval(t); } }, 100); setTimeout(() => clearInterval(t), 5000); }
     this.render();
     setInterval(() => this.tickUI(), 200);
@@ -164,6 +165,7 @@ const App = {
     LS.set('dotd-last', { code, name: this.name, watch: !!watch }); history.replaceState(null, '', '?room=' + code); this.render();
   },
   rejoin() { Net.call('join', { code: this.code, name: this.name, watch: this.watching }); },
+  loadRooms() { return Net.call('my-rooms').then(r => { if (!r.error) { this.myRooms = r.rows || []; if (this.view === 'home') this.render(); } }); },
   /* back to the home page. The room itself stays open on the server, so the host can use Rejoin to come back to it. */
   async goHome() {
     const wasHost = this.isHost && !this.local && !this.watching && this.code, code = this.code;
@@ -176,7 +178,7 @@ const App = {
     if (!this.local) await Net.call('leave', {});
     Music.stop(); this.musicKey = ''; this.chatOpen = false; this.chatDocs = {}; this.localChat = []; renderChat();
     Object.assign(this, { watching: false, view: 'home', host: null, isHost: false, local: false, pub: null, hand: [], sel: [], pending: null, code: null, seatOrder: null });
-    history.replaceState(null, '', location.pathname); this.render();
+    history.replaceState(null, '', location.pathname); this.render(); this.loadRooms();
   },
 
   /* ----- state in ----- */
@@ -378,7 +380,7 @@ const App = {
 
 /* ---------- views ---------- */
 function rulesHTML(open = true) {
-  return `<details class="rules" ${open ? 'open' : ''}><summary>Rules</summary><ol>
+  return `<p class="note">Want the full guide with examples? <a href="/rules" target="_blank" rel="noopener">Open the rules page</a>.</p><details class="rules" ${open ? 'open' : ''}><summary>Rules</summary><ol>
 <li>Four or five players, one 52-card deck, no jokers or trumps. Ace is high, 2 is low.</li>
 <li>Everyone draws a card. The highest draw arranges the seats; a second draw makes the lowest card the first dealer. Ties redraw.</li>
 <li>The dealer deals clockwise in batches of their choice, from one card to a player’s whole share. With five players, 2 extra cards go to one player (or one each to two players, if the host chooses that). The extra-card seat moves one place clockwise every hand.</li>
@@ -455,6 +457,12 @@ function profileHTML() {
 function suitSeg() {
   return `<span class="seg" role="group" aria-label="Suit names">${[['en', 'English'], ['hi', 'Hinglish'], ['both', 'Both']].map(([k, l]) => `<button data-a="suits" data-k="${k}" aria-pressed="${App.suitMode === k}">${l}</button>`).join('')}</span>`;
 }
+/* rooms this player (or their account, on any device) can go back to */
+function timeAgo(ms) { const s = Math.max(0, (Date.now() - ms) / 1000); if (s < 90) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min ago'; if (s < 86400) return Math.round(s / 3600) + ' h ago'; return Math.round(s / 86400) + ' d ago'; }
+function resumeHTML() {
+  const rows = (App.myRooms || []).filter(r => r.phase === 'lobby' || r.phase === 'playing').slice(0, 3); if (!rows.length) return '';
+  return `<section class="resume" aria-label="Pick up where you left off"><h3>Pick up where you left off</h3>${rows.map(r => `<div class="resume-row"><div class="resume-txt"><b>${esc(r.code)}</b> <span class="note">${r.phase === 'playing' ? 'match in progress, hand ' + r.hand : 'in the lobby'} · ${esc(timeAgo(r.at))}</span><div class="note">${r.others.length ? 'With ' + r.others.map(esc).join(', ') : 'No one else yet'}</div></div><button class="btn gold small" data-a="resume-room" data-c="${esc(r.code)}" data-n="${esc(r.me)}">Resume</button></div>`).join('')}</section>`;
+}
 function homeHTML() {
   const last = LS.get('dotd-last'), online = Net.online();
   const netNote = online ? '' : '<p class="note">Connecting to the game server…</p>';
@@ -464,7 +472,7 @@ function homeHTML() {
   <div class="row quick"><button class="btn alt small" data-a="help" aria-label="How to play">📖 Rules</button>${online ? '<button class="btn alt small" data-a="profile">⭐ My profile</button>' : ''}<button class="btn alt small" data-a="fun-hall" ${Net.canWatch() ? '' : 'disabled'}>🫏 Hall of Shame</button></div>
   ${App.homeMsg ? `<p class="err" role="alert">${esc(App.homeMsg)}</p>` : ''}
   <div class="row suitrow"><span>Suit names</span>${suitSeg()}<span class="ver">v${BUILD.version}</span></div></div>
-  ${Prog.challengeHTML()}
+  ${Prog.challengeHTML()}${resumeHTML()}
   <div class="homeform">
   <div class="choice"><h3>Play with friends</h3>${netNote}
     <div class="row" style="margin-top:6px"><button class="btn gold" data-a="create" ${online && !App.joining ? '' : 'disabled'}>Create room</button>
@@ -474,7 +482,7 @@ function homeHTML() {
   <div class="choice"><h3>Practice with bots</h3>
     <div class="row" style="margin-top:6px"><select class="lvl" data-change="plevel" aria-label="Bot level">${LEVELS.map(([k, l]) => `<option value="${k}" ${App.practiceLevel === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
     <button class="btn" data-a="practice" data-n="4">4 players</button><button class="btn alt" data-a="practice" data-n="5">5 players</button></div></div>
-  </div><p class="note foot"><a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p></div>`;
+  </div><p class="note foot"><a href="/">Website</a> · <a href="/rules">Full rules</a> · <a href="/account">My games</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p></div>`;
 }
 function lobbyHTML() {
   const p = App.pub, L = p.lobby, me = (L.members || []).find(x => x.uid === App.uid), H = App.isHost, m = p.match;
@@ -498,7 +506,7 @@ const SPICE_OPTS = [['device', 'Each phone'], ['off', 'Off'], ['halka', 'Halka']
 const lbSeg = (attr, opts, cur) => `<span class="seg wrapseg" role="group">${opts.map(([k, l, extra]) => `<button ${attr.replace('{k}', k)} aria-pressed="${String(cur) === String(k)}" ${extra || ''}>${l}</button>`).join('')}</span>`;
 
 function lobbyInviteHTML(L, H) {
-  const link = location.host + '/?room=' + App.code;
+  const link = location.host + '/play?room=' + App.code;
   return `<section class="lb-card lb-invite" aria-label="Invite friends">
     <div class="lb-label">Invite friends</div>
     <div class="bigcode" aria-label="Room code ${esc(App.code.split('').join(' '))}">${esc(App.code)}</div>
@@ -1015,7 +1023,8 @@ document.addEventListener('click', async e => {
     case 'audio': App.enableAudio(); break;
     case 'mute': Music.muted = !Music.muted; Music.applyVol(); App.renderSheet(); App.render(); break;
     case 'fill-bots': App.send('FILL_BOTS'); break;
-    case 'share-invite': { const url = location.origin + '/?room=' + App.code, text = 'Join my Donkey of the Day game! Room ' + App.code + ' 🫏';
+    case 'resume-room': { const el = $('#nm'); if (el) el.value = b.dataset.n || el.value; App.joinRoom(b.dataset.c); break; }
+    case 'share-invite': { const url = location.origin + '/play?room=' + App.code, text = 'Join my Donkey of the Day game! Room ' + App.code + ' 🫏';
       if (navigator.share) { try { await navigator.share({ title: 'Donkey of the Day', text, url }); } catch (x) {} } else window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank', 'noopener'); break; }
     case 'react-toggle': App.reactOpen = !App.reactOpen; App.render(); break;
     case 'profile': App.openProfile(); break;

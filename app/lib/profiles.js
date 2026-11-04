@@ -4,7 +4,7 @@
    Players can export or delete everything here from their profile. `rules` comes from the shared progress table
    (lib/rules.js), so the server and the pages agree on levels, challenges and unlocks. */
 const fs = require('fs');
-const HALL_MAX = 50;
+const HALL_MAX = 50, HISTORY_MAX = 100;
 
 class Profiles {
   constructor(file, rules, offsetMin) {
@@ -30,6 +30,13 @@ class Profiles {
     }
     this.save();
   }
+  /* one finished match, newest first; a match is stored once */
+  addHistory(uid, entry) {
+    const p = this.ensure(uid); p.history = p.history || [];
+    if (entry.matchId && p.history.some(h => h.matchId === entry.matchId && h.room === entry.room)) return;
+    p.history.unshift(entry); if (p.history.length > HISTORY_MAX) p.history.length = HISTORY_MAX; this.save();
+  }
+  history(uid, limit = 50) { const p = this.data[uid]; return p && p.history ? p.history.slice(0, limit) : []; }
   /* returns { level } when the player just went up a level, else null */
   addXp(uid, n) {
     const p = this.ensure(uid), before = this.R.levelOfXp(p.xp); p.xp += n; this.save();
@@ -54,12 +61,13 @@ class Profiles {
     b.xp += a.xp; b.matches += a.matches; b.handsSafe += a.handsSafe; b.series.won += a.series.won; b.series.lost += a.series.lost;
     b.hall = b.hall.concat(a.hall).sort((x, y) => y.at - x.at).slice(0, HALL_MAX); b.createdAt = Math.min(b.createdAt, a.createdAt);
     if ((a.chal && a.chal.streak || 0) > b.chal.streak) b.chal = a.chal;
+    if (a.history && a.history.length) { const seen = new Set((b.history || []).map(h => h.room + ':' + h.matchId)); b.history = (b.history || []).concat(a.history.filter(h => !seen.has(h.room + ':' + h.matchId))).sort((x, y) => y.at - x.at).slice(0, HISTORY_MAX); }
     delete this.data[from]; this.save();
   }
   view(uid, now = Date.now()) {
     const R = this.R, p = this.data[uid] || { name: null, xp: 0, matches: 0, series: { won: 0, lost: 0 }, handsSafe: 0, hall: [], look: { theme: 'teal', back: 'rani' }, chal: { done: {}, streak: 0, lastDay: '' } };   // looking never creates a profile
     const lv = R.levelOfXp(p.xp), day = this.day(now), c = R.challengeOfDay(day), look = p.look || { theme: 'teal', back: 'rani' }, chal = p.chal || { done: {}, streak: 0 };
-    return { name: p.name, xp: p.xp, level: lv, prevLevelXp: (lv - 1) * 100, nextLevelXp: lv * 100, matches: p.matches, series: p.series, handsSafe: p.handsSafe, hall: p.hall,
+    return { name: p.name, xp: p.xp, level: lv, prevLevelXp: (lv - 1) * 100, nextLevelXp: lv * 100, matches: p.matches, series: p.series, handsSafe: p.handsSafe, hall: p.hall, historyCount: (p.history || []).length,
       look, challenge: { id: c.id, t: c.t, done: chal.done[day] === c.id, streak: chal.streak } };
   }
   remove(uid) { delete this.data[uid]; this.save(); }

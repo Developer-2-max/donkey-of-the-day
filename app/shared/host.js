@@ -64,6 +64,14 @@ class Host {
     return Engine.createMatch({ players, mode, tz, now, matchId: 'M' + now.toString(36).toUpperCase(), titles: L.titlesOn ? L.titles : null, target: L.target || 5,
       targets: (L.targets || []).filter(u => players.some(p => p.uid === u)), hints: L.hints !== false, fun: L.fun });
   }
+  /* a signed-in player continues from another device: their seat (and hand, losses, everything keyed by their id) moves to the new id */
+  swapUid(old, neu) {
+    if (!old || !neu || old === neu) return;
+    const o = JSON.parse(JSON.stringify({ lobby: this.lobby, st: this.st, music: this.music, reported: this.reported, prog: this.prog }).split(old).join(neu));
+    this.lobby = o.lobby; this.st = o.st; this.music = o.music; this.reported = o.reported; this.prog = o.prog;
+    if (this.uid === old) this.uid = neu;
+    if (this.memberCache[old]) { this.memberCache[neu] = this.memberCache[old]; delete this.memberCache[old]; }
+  }
   /* the Donkey of the last hand cannot chat during the next hand when "Mute the Donkey" is on */
   isMuted(uid) { const st = this.st, r = st && st.lastResult; return !!(this.lobby.fun.mute && r && r.uid === uid && st.handNo === r.handNo + 1); }
   handle(uid, a) {

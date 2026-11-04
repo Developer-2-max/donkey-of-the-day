@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My games: Donkey of the Day</title>
+<meta name="description" content="Your Donkey of the Day match history, rooms you can resume and signed-in devices.">
+<meta name="theme-color" content="#0F5563">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Donkey"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;700&family=Rozha+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<div class="stripe"></div>
+<header class="site-header"><nav class="nav" aria-label="Main">
+  <a class="brand" href="/"><span aria-hidden="true">🫏</span><b>Donkey of the Day</b></a>
+  <a class="lnk" href="/rules">Rules</a><a class="lnk" href="/account" aria-current="page">My games</a><a class="btn gold small" href="/play">Play</a>
+</nav></header>
+
+<main class="acct">
+  <div><h1>My games</h1><p class="lead">Your matches, your rooms and your devices.</p></div>
+  <div id="status" class="note" role="status">Connecting…</div>
+
+  <section class="panel hidden" id="p-in" aria-label="Sign in"></section>
+  <section class="panel hidden" id="p-me" aria-label="Profile"></section>
+  <section class="panel hidden" id="p-rooms" aria-label="Resume a room"></section>
+  <section class="panel hidden" id="p-hist" aria-label="Match history"></section>
+  <section class="panel hidden" id="p-devs" aria-label="Signed-in devices"></section>
+</main>
+
+<footer class="site-footer"><a href="/">Home</a><a href="/rules">Rules</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></footer>
+<div id="toast" class="toast hidden" role="status"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/site.js"></script>
+</body>
+</html>

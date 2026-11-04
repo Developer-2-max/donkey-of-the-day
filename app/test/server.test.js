@@ -10,9 +10,13 @@ test.after(async () => { await srv.stop(); });
 const mkRoom = async (opts = {}) => { const host = player(srv.url); await host.ready; const r = await host.call('create', Object.assign({ name: 'Host' }, opts)); return { host, code: r.code, r }; };
 
 test('serves the page, shared code, audio manifest, privacy pages and PWA files; sends security headers', async () => {
-  for (const p of ['/', '/app.js', '/shared/engine.js', '/shared/catalog.js', '/audio/manifest.json', '/privacy.html', '/terms.html', '/manifest.webmanifest', '/sw.js', '/healthz']) {
+  for (const p of ['/', '/play', '/rules', '/account', '/site.css', '/site.js', '/app.js', '/shared/engine.js', '/shared/catalog.js', '/audio/manifest.json', '/privacy.html', '/terms.html', '/manifest.webmanifest', '/sw.js', '/healthz']) {
     const r = await fetch(srv.url + p); assert.equal(r.status, 200, p);
   }
+  assert.match(await (await fetch(srv.url + '/')).text(), /Don’t be the Donkey/, '/ is the landing page');
+  assert.match(await (await fetch(srv.url + '/play')).text(), /app\.js/, '/play is the game');
+  assert.match(await (await fetch(srv.url + '/rules')).text(), /How to play/);
+  const old = await fetch(srv.url + '/?room=abcde', { redirect: 'manual' }); assert.equal(old.status, 302); assert.equal(old.headers.get('location'), '/play?room=ABCDE', 'old invite links still work');
   const r = await fetch(srv.url + '/');
   assert.match(r.headers.get('content-security-policy'), /script-src 'self'/); assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
   const man = await (await fetch(srv.url + '/audio/manifest.json')).json(); assert.deepEqual(Object.keys(man).sort(), ['commentary', 'music']);
