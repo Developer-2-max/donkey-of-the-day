@@ -119,7 +119,7 @@ const cardStatic = (c, cls = '') => cardHTML(c, cls, 'tabindex="-1" disabled sty
 const App = {
   view: 'home', uid: null, name: '', code: null, host: null, isHost: false, local: false, pub: null, hand: [], sel: [], pending: null,
   extra: null, offset: 0, lastRecv: 0, online: new Set(), dealCount: 3, seatOrder: null, musicKey: '', homeMsg: '', joining: false, createPublic: false, profile: null, mutedUsers: new Set(LS.get('dotd-muted') || []), suitMode: LS.get('dotd-suits') || 'both', practiceLevel: LS.get('dotd-botlevel') || 'medium',
-  musicPick: (LS.get('dotd-music') || {}).src === 'own' ? { src: 'own' } : { src: 'room' }, chatDocs: {}, localChat: [], chatOpen: false, chatSeen: 0, openSets: new Set(), watching: false, songs: {}, localSongs: [], teaseTarget: '', clipJob: null,
+  musicPick: (LS.get('dotd-music') || {}).src === 'own' ? { src: 'own' } : { src: 'room' }, chatDocs: {}, localChat: [], chatOpen: false, chatSeen: 0, chatCount: 0, teaseOpen: LS.get('dotd-tease') === true, openSets: new Set(), watching: false, songs: {}, localSongs: [], teaseTarget: '', clipJob: null,
 
   async boot() {
     this.name = LS.get('dotd-name') || '';
@@ -705,27 +705,65 @@ function titleBlock(m, r, compact) {
   return h;
 }
 function unreadBadge() { const n = App.chatList().length - App.chatSeen; return n > 0 && !App.chatOpen ? ` <span class="unread">${n > 9 ? '9+' : n}</span>` : ''; }
+/* ---------- table chat panel: grouped bubbles, mentions, empty state, new-message pill, emoji picker, collapsible teasing ---------- */
+const CHAT_HELLO = ['Namaste 🙏', 'Chalo shuru karein!', 'All the best 🤞'];
+const EMOJIS = ['😂', '🤣', '😅', '😬', '😎', '🫏', '👏', '🔥', '🙏', '🤞', '❤️', '😡'];
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function chatIsBot(u) { const p = App.pub; if (!p) return false; if (p.match && p.match.bots && u in p.match.bots) return !!p.match.bots[u]; const m = (p.lobby.members || []).find(x => x.uid === u); return !!(m && m.bot); }
+/* the text of one message: HTML-escaped, with a leading @Name turned into a chip */
+function chatTextHTML(x, names) {
+  const hit = names.filter(n => n && x.toLowerCase().startsWith('@' + n.toLowerCase())).sort((a, b) => b.length - a.length)[0];
+  if (!hit) return esc(x);
+  return `<span class="mention">${esc(x.slice(0, hit.length + 1))}</span>${esc(x.slice(hit.length + 1))}`;
+}
+function chatMessagesHTML(list) {
+  const p = App.pub, ppl = p.match ? (p.match.seats || p.match.lobby) : (p.lobby.members || []).map(x => x.uid), names = ppl.map(nameOf), me = nameOf(App.uid);
+  let prev = null;
+  return list.map(x => {
+    const mine = x.u === App.uid, cont = !!prev && prev.u === x.u && x.t - prev.t < 120000; prev = x;
+    const bot = chatIsBot(x.u), mention = !mine && x.x.toLowerCase().includes('@' + me.toLowerCase());
+    const time = new Date(x.t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const acts = !mine && !App.local && x.id && !bot ? `<div class="cm-acts"><button class="lnk" data-a="report" data-id="${esc(x.id)}" aria-label="Report this message">Report</button><button class="lnk" data-a="mute-user" data-u="${esc(x.u)}" aria-label="Mute or unmute this player on this device">Mute</button></div>` : '';
+    return `<div class="cm ${mine ? 'mine' : ''} ${cont ? 'cont' : ''} ${mention ? 'ment' : ''}" style="--c:${colorOf(x.u)}">
+      ${mine ? '' : cont ? '<span class="cm-av-sp"></span>' : avatar(x.u)}
+      <div class="cm-body">${cont ? '' : `<div class="cm-meta">${mine ? '' : `<b class="cm-name">${esc(nameOf(x.u))}</b>`}${bot ? '<span class="cm-bot">bot</span>' : ''}<time>${esc(time)}</time></div>`}
+        <div class="cm-bubble" tabindex="0">${chatTextHTML(x.x, names)}</div>${acts}</div></div>`;
+  }).join('');
+}
 function renderChat() {
   const el = $('#chat'); const show = App.view === 'room' && !!App.pub;
   el.classList.toggle('hidden', !show); if (!show) return;
   el.classList.toggle('open', App.chatOpen);
   const list = App.chatList(); if (App.chatOpen || window.matchMedia('(min-width: 900px)').matches) App.chatSeen = list.length;
-  const box = $('#chatlist'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
-  box.innerHTML = list.length ? list.map(x => `<div class="cmsg ${x.u === App.uid ? 'mine' : ''}" style="--c:${colorOf(x.u)}"><span class="from">${avatar(x.u)}${x.u === App.uid ? 'You' : esc(nameOf(x.u))}</span><span class="txt">${esc(x.x)}</span>${x.u !== App.uid && !App.local && x.id ? `<span class="mod"><button class="lnk" data-a="report" data-id="${esc(x.id)}" title="Report this message" aria-label="Report this message">Report</button><button class="lnk" data-a="mute-user" data-u="${esc(x.u)}" title="Mute or unmute this player on this device" aria-label="Mute this player">Mute</button></span>` : ''}</div>`).join('')
-    : `<p class="note">No messages yet. Say hello to the table.</p>`;
-  if (atBottom) box.scrollTop = box.scrollHeight;
+  const p = App.pub, ppl = p.match ? (p.match.seats || p.match.lobby) : (p.lobby.members || []).map(x => x.uid);
+  const onl = ppl.filter(u => chatIsBot(u) || App.online.has(u) || u === App.uid || App.local).length, wat = (p.lobby.watchers || []).length;
+  $('#chatsub').textContent = `${ppl.length} player${ppl.length === 1 ? '' : 's'} · ${onl} online${wat ? ' · ' + wat + ' watching' : ''}`;
+  const box = $('#chatlist'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60, grew = list.length > (App.chatCount || 0);
+  box.innerHTML = list.length ? chatMessagesHTML(list)
+    : `<div class="chat-empty"><div class="ce-ico" aria-hidden="true">🫏</div><b>Say hello to the table</b><span>Players and watchers can all read this chat.</span><div class="ce-chips">${CHAT_HELLO.map(t => `<button class="chip2" data-a="quick-chat" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>`;
+  if (atBottom || !App.chatCount) { box.scrollTop = box.scrollHeight; $('#chatnew').classList.add('hidden'); }
+  else if (grew) { const last = list[list.length - 1]; if (last && last.u !== App.uid) $('#chatnew').classList.remove('hidden'); else box.scrollTop = box.scrollHeight; }
+  App.chatCount = list.length;
   const lastMsg = list[list.length - 1], key = lastMsg ? lastMsg.u + ':' + lastMsg.t : '';
   if (key !== App.lastChatKey) { const first = App.lastChatKey == null; App.lastChatKey = key;
     const cl = document.querySelector('.chatline'); if (cl) cl.outerHTML = chatLineHTML();
     if (!first && lastMsg) App.showBubble(lastMsg.u, lastMsg.x); }
-  const tz = $('#teases'), mm = App.pub.match, ppl = mm ? (mm.seats || mm.lobby) : (App.pub.lobby.members || []).map(x => x.uid);
-  if (!ppl.includes(App.teaseTarget)) App.teaseTarget = ppl.find(u => u !== App.uid) || '';
-  tz.innerHTML = `<label class="note" for="teaseto">Tease</label><select id="teaseto" class="lvl" data-change="tease-to">${ppl.filter(u => u !== App.uid).map(u => `<option value="${esc(u)}" ${u === App.teaseTarget ? 'selected' : ''}>${esc(nameOf(u))}</option>`).join('')}</select>
-    <div class="teaserow">${TEASES.map(t => `<button class="chip2" data-a="tease" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>`;
+  // teasing (the Lab's preset lines) tucked into a fold so the conversation gets the room
+  const tz = $('#teases'), others = ppl.filter(u => u !== App.uid);
+  if (!others.includes(App.teaseTarget)) App.teaseTarget = others[0] || '';
+  const open = !!App.teaseOpen && others.length > 0;
+  tz.innerHTML = others.length ? `<button class="tease-toggle" data-a="tease-toggle" aria-expanded="${open}">😈 Tease <span aria-hidden="true">${open ? '▾' : '▸'}</span></button>` +
+    (open ? `<div class="tease-panel"><label class="note" for="teaseto">At</label><select id="teaseto" class="lvl" data-change="tease-to">${others.map(u => `<option value="${esc(u)}" ${u === App.teaseTarget ? 'selected' : ''}>${esc(nameOf(u))}</option>`).join('')}</select>
+      <div class="teaserow">${TEASES.map(t => `<button class="chip2" data-a="tease" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>` : '') : '';
   document.querySelectorAll('.unread').forEach(u => u.remove());
   const n = list.length - App.chatSeen;
   if (n > 0) document.querySelectorAll('[data-a="chat"]').forEach(b => b.insertAdjacentHTML('beforeend', ` <span class="unread">${n > 9 ? '9+' : n}</span>`));
 }
+
+function updateChatCount() { const i = $('#chatin'), c = $('#chatcount'), n = i.value.length; c.textContent = n + '/240'; c.classList.toggle('hidden', n < 180); c.classList.toggle('warn', n >= 230); }
+$('#emojis').innerHTML = EMOJIS.map(e => `<button data-a="emoji-add" data-e="${e}" aria-label="Insert ${e}">${e}</button>`).join('');
+document.addEventListener('input', e => { if (e.target.id === 'chatin') updateChatCount(); });
+document.addEventListener('scroll', e => { const b = e.target; if (b && b.id === 'chatlist' && b.scrollHeight - b.scrollTop - b.clientHeight < 60) $('#chatnew').classList.add('hidden'); }, true);
 /* ---------- table story ---------- */
 const EV_ICON = { cut: '✂️', clean: '✅', out: '🏁', donkey: '🫏', auto: '⏱️', crown: '👑' };
 function evAge(e) { return Date.now() - (e.t + App.offset); }
@@ -903,10 +941,15 @@ document.addEventListener('click', async e => {
     case 'series': App.send('SET_TARGET', { n: +b.dataset.n }); break;
     case 'player': App.sheetUid = b.dataset.u; App.openSheet('player'); break;
     case 'rename': { const v = $('#rename') && $('#rename').value; App.send('CROWN', { name: v }); break; }
+    case 'chat-bottom': { const b2 = $('#chatlist'); b2.scrollTop = b2.scrollHeight; $('#chatnew').classList.add('hidden'); break; }
+    case 'quick-chat': App.sendChat(b.dataset.t); break;
+    case 'tease-toggle': App.teaseOpen = !App.teaseOpen; LS.set('dotd-tease', App.teaseOpen); renderChat(); break;
+    case 'emoji-toggle': $('#emojis').classList.toggle('hidden'); break;
+    case 'emoji-add': { const i = $('#chatin'), s = i.selectionStart == null ? i.value.length : i.selectionStart, e2 = i.selectionEnd == null ? s : i.selectionEnd; i.value = (i.value.slice(0, s) + b.dataset.e + i.value.slice(e2)).slice(0, 240); i.focus(); try { i.setSelectionRange(s + b.dataset.e.length, s + b.dataset.e.length); } catch (x) {} updateChatCount(); break; }
     case 'tease': { const t = App.teaseTarget, line = b.dataset.t; App.sendChat((t ? '@' + nameOf(t) + ' ' : '') + line); break; }
     case 'chat': App.chatOpen = !App.chatOpen; renderChat(); if (App.chatOpen) setTimeout(() => $('#chatin').focus(), 50); App.render(); break;
     case 'chat-close': App.chatOpen = false; renderChat(); App.render(); break;
-    case 'chat-send': App.sendChat($('#chatin').value); $('#chatin').value = ''; break;
+    case 'chat-send': App.sendChat($('#chatin').value); $('#chatin').value = ''; $('#emojis').classList.add('hidden'); updateChatCount(); break;
     case 'titles-on': App.send('SET_TITLES', { on: b.dataset.k === '1' }); break;
     case 'crown': App.send('CROWN', { name: b.dataset.t }); break;
     case 'tracker': App.openSheet('tracker'); break;
@@ -976,7 +1019,7 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('seat')) { e.preventDefault(); e.target.click(); return; }
-  if (e.key === 'Enter' && e.target.id === 'chatin') { App.sendChat(e.target.value); e.target.value = ''; return; } if (e.key === 'Escape' && App.sheet) App.closeSheet(); if (e.key === 'Enter' && e.target.id === 'code') App.joinRoom(e.target.value); });
+  if (e.key === 'Enter' && e.target.id === 'chatin') { App.sendChat(e.target.value); e.target.value = ''; $('#emojis').classList.add('hidden'); updateChatCount(); return; } if (e.key === 'Escape' && App.sheet) App.closeSheet(); if (e.key === 'Enter' && e.target.id === 'code') App.joinRoom(e.target.value); });
 let rzT = null; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (App.view === 'room') App.render(); }, 150); });
 /* ---------- v6: live commentary, throws, final showdown, Hall of Shame ---------- */
 const Fun = {

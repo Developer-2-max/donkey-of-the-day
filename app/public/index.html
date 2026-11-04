@@ -205,12 +205,6 @@ select.lvl{ border:1.5px solid var(--line); border-radius:8px; background:var(--
 #chat .head{ display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); }
 #chat .head h2{ font-size:22px; flex:1; }
 #chatlist{ flex:1 1 auto; overflow:auto; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
-.cmsg{ display:flex; flex-direction:column; gap:2px; max-width:88%; }
-.cmsg .from{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); }
-.cmsg .from .av{ width:16px; height:16px; font-size:10px; }
-.cmsg .txt{ background:var(--page); border-left:3px solid var(--c); padding:6px 10px; border-radius:4px 10px 10px 4px; overflow-wrap:anywhere; }
-.cmsg.mine{ align-self:flex-end; align-items:flex-end; }
-.cmsg.mine .txt{ border-left:0; border-right:3px solid var(--c); border-radius:10px 4px 4px 10px; }
 #chat .send{ display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--line); }
 #chat .send input{ flex:1; }
 @media (max-width: 899px){
@@ -602,9 +596,6 @@ details.set section.sub h3{ font-size:20px; margin-bottom:4px; }
 .hall{ margin:6px 0 0; padding-left:20px; }
 .pubrow{ display:flex; gap:8px; align-items:center; margin-top:8px; }
 .pubrow input{ width:18px; height:18px; }
-.cmsg .mod{ display:none; gap:10px; margin-top:2px; }
-.cmsg:hover .mod, .cmsg:focus-within .mod{ display:flex; }
-@media (hover:none){ .cmsg .mod{ display:flex; } }
 .lnk{ background:none; border:0; padding:0; font-size:12px; color:var(--muted); text-decoration:underline; min-height:24px; }
 .foot{ text-align:center; margin-top:28px; }
 .foot a{ color:inherit; }
@@ -743,15 +734,60 @@ button.rule-row:hover{ background:rgba(127,127,127,.06); }
 }
 /* the chat panel is open beside the page from 900px up, so the Chat button is not needed there */
 @media (min-width:900px){ .lb-barbtns .chatbtn2{ display:none; } }
+
+/* ================= Table chat (redesigned) ================= */
+#chat .head{ padding:12px 14px; gap:10px; border-bottom:1.5px solid var(--line); }
+.ch-title{ flex:1; min-width:0; } .ch-title h2{ font-size:22px; line-height:1.1; } .ch-sub{ font-size:13px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#chat .closer{ width:38px; height:38px; padding:0; border-radius:50%; font-size:16px; }
+.chatwrap{ position:relative; flex:1 1 auto; min-height:0; display:flex; }
+#chatlist{ flex:1 1 auto; min-height:0; padding:6px 12px 10px; gap:0; overscroll-behavior:contain; }
+.cm{ display:flex; align-items:flex-end; gap:8px; margin-top:12px; }
+.cm.cont{ margin-top:2px; }
+.cm .av{ width:28px; height:28px; font-size:13px; flex:none; box-shadow:0 0 0 2px var(--c); }
+.cm-av-sp{ width:28px; flex:none; }
+.cm-body{ min-width:0; max-width:calc(100% - 38px); display:flex; flex-direction:column; align-items:flex-start; }
+.cm-meta{ display:flex; align-items:baseline; gap:6px; margin:0 6px 3px; font-size:12px; color:var(--muted); }
+.cm-name{ color:var(--ink); font-weight:700; font-size:13px; }
+.cm-bot{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:0 6px; border-radius:8px; box-shadow:inset 0 0 0 1px var(--line); }
+.cm-bubble{ background:var(--page); padding:8px 12px; border-radius:16px 16px 16px 5px; overflow-wrap:anywhere; line-height:1.35; font-size:15px; max-width:100%; outline:none; }
+.cm.cont .cm-bubble{ border-radius:5px 16px 16px 5px; }
+.cm.mine{ flex-direction:row-reverse; }
+.cm.mine .cm-body{ align-items:flex-end; max-width:86%; }
+.cm.mine .cm-bubble{ background:var(--felt); color:var(--feltInk); border-radius:16px 16px 5px 16px; }
+.cm.mine.cont .cm-bubble{ border-radius:16px 5px 5px 16px; }
+.cm.ment .cm-bubble{ box-shadow:0 0 0 2px var(--marigold); }
+.cm .mention{ font-weight:700; background:rgba(242,165,22,.28); border-radius:6px; padding:0 4px; }
+.cm.mine .mention{ background:rgba(255,255,255,.2); }
+.cm-acts{ display:none; gap:12px; margin:3px 8px 0; }
+.cm:hover .cm-acts, .cm:focus-within .cm-acts{ display:flex; }
+.chat-empty{ margin:auto; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; padding:24px 14px; color:var(--muted); }
+.chat-empty b{ color:var(--ink); font-size:17px; } .ce-ico{ font-size:42px; line-height:1; } .ce-chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:10px; }
+.chatnew{ position:absolute; left:50%; bottom:10px; transform:translateX(-50%); border:0; border-radius:20px; padding:7px 14px; font-size:13px; font-weight:700; background:var(--marigold); color:#1E1606; box-shadow:0 4px 14px rgba(0,0,0,.3); }
+.teases{ display:block; padding:0 12px; border-top:1.5px solid var(--line); }
+.tease-toggle{ display:flex; align-items:center; gap:6px; width:100%; background:none; border:0; padding:9px 2px; color:var(--muted); font-weight:700; font-size:14px; min-height:40px; }
+.tease-panel{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0 0 10px; }
+#chat .send{ display:block; padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px)); border-top:1.5px solid var(--line); position:relative; }
+.sendrow{ display:flex; align-items:center; gap:8px; }
+#chat .send input{ flex:1; min-width:0; border-radius:22px; padding:10px 16px; min-height:44px; }
+.emo{ flex:none; width:40px; height:40px; border-radius:50%; border:0; background:transparent; font-size:22px; line-height:1; }
+.emo:hover{ background:var(--page); }
+.sendbtn{ flex:none; width:44px; height:44px; border-radius:50%; border:0; background:var(--felt); color:var(--feltInk); font-size:18px; }
+.sendbtn:hover{ filter:brightness(1.12); }
+.emojis{ display:grid; grid-template-columns:repeat(6,1fr); gap:4px; padding:8px; margin:0 0 8px; background:var(--page); border-radius:14px; }
+.emojis button{ border:0; background:transparent; font-size:22px; padding:6px 0; border-radius:10px; } .emojis button:hover{ background:var(--surface); }
+.chatcount{ position:absolute; right:70px; top:-18px; font-size:12px; color:var(--muted); background:var(--surface); padding:1px 6px; border-radius:8px; }
+.chatcount.warn{ color:var(--warn); font-weight:700; }
 </style>
 </head>
 <body>
 <div class="stripe" aria-hidden="true"></div>
 <main id="app"></main>
-<aside id="chat" class="hidden" aria-label="Table chat"><div class="head"><h2>Table chat</h2><button class="btn alt small closer" data-a="chat-close">Close</button></div>
-<div id="chatlist" aria-live="polite"></div>
+<aside id="chat" class="hidden" aria-label="Table chat">
+<div class="head"><div class="ch-title"><h2>Table chat</h2><div class="ch-sub" id="chatsub"></div></div><button class="btn alt small closer" data-a="chat-close" aria-label="Close chat">✕</button></div>
+<div class="chatwrap"><div id="chatlist" role="log" aria-live="polite"></div><button id="chatnew" class="chatnew hidden" data-a="chat-bottom">↓ New messages</button></div>
 <div id="teases" class="teases"></div>
-<div class="send"><input id="chatin" class="t" maxlength="240" placeholder="Message the table" aria-label="Chat message" autocomplete="off"><button class="btn" data-a="chat-send">Send</button></div></aside>
+<div class="send"><div id="emojis" class="emojis hidden"></div><span id="chatcount" class="chatcount hidden" aria-live="off"></span>
+<div class="sendrow"><button class="emo" data-a="emoji-toggle" aria-label="Emoji">😀</button><input id="chatin" class="t" maxlength="240" placeholder="Message the table" aria-label="Chat message" autocomplete="off"><button class="sendbtn" data-a="chat-send" aria-label="Send message">➤</button></div></div></aside>
 <div id="sheet" class="sheet hidden" role="dialog" aria-modal="true"></div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <script src="/socket.io/socket.io.js"></script>
