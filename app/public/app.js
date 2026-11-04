@@ -460,13 +460,6 @@ function homeHTML() {
     <button class="btn" data-a="practice" data-n="4">4 players</button><button class="btn alt" data-a="practice" data-n="5">5 players</button></div></div>
   </div><p class="note foot"><a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p></div>`;
 }
-/* the Lab's fun rules as tap-to-toggle chips, so they are one tap away instead of buried in settings */
-function funChipsHTML(L, H) {
-  const F = L.fun || {}, rules = [['shuffle', '🔀', 'Shuffle power'], ['powers', '✨', 'Magic cards'], ['blitz', '⚡', 'Blitz'], ['bets', '🎲', 'Bets'], ['mute', '🤐', 'Mute Donkey']];
-  return `<div class="rulechips" role="group" aria-label="Fun rules">${rules.map(([k, i, n]) => H
-    ? `<button class="rulechip ${F[k] ? 'on' : ''}" data-a="v7-fun" data-k="${k}" data-v="${F[k] ? '0' : '1'}" aria-pressed="${!!F[k]}"><span aria-hidden="true">${i}</span> ${n}</button>`
-    : `<span class="rulechip ${F[k] ? 'on' : 'off'}"><span aria-hidden="true">${i}</span> ${n}</span>`).join('')}</div>`;
-}
 function lobbyHTML() {
   const p = App.pub, L = p.lobby, me = (L.members || []).find(x => x.uid === App.uid), H = App.isHost, m = p.match;
   if (!me) {
@@ -476,59 +469,106 @@ function lobbyHTML() {
       <div class="row" style="margin-top:14px"><button class="btn alt" data-a="music">Music</button><button class="btn alt chatbtn" data-a="chat">Chat${unreadBadge()}</button><button class="btn alt" data-a="leave-now">Stop watching</button></div></div>`;
     return `<div class="wrap"><h1 class="code">${esc(App.code)}</h1><p>${why}</p><div class="row">${m || L.members.length >= L.seatsWanted ? '<button class="btn gold" data-a="watch-instead">Watch instead</button>' : ''}<button class="btn alt" data-a="leave-now">Back to home</button></div></div>`;
   }
-  const full = L.members.length === L.seatsWanted, missing = L.seatsWanted - L.members.length;
-  const nowTitle = p.music.kind === 'song' ? p.music.song.title : App.trackFor(p.music).title;
-  const startWhy = !full ? `Waiting for ${missing} more player${missing > 1 ? 's' : ''}. ${App.local ? '' : 'Share the code, or fill the seats with bots.'}` : 'Every seat is filled. Music is optional, so you can start now.';
-  return foldSections(`<div class="wrap lobby">
-  <div class="row lobhead"><div class="grow">${App.local ? '<h1>Practice table</h1>' : '<h1>Table lobby</h1>'}</div>
-   <button class="btn alt small" data-a="help" aria-label="How to play">?</button><button class="btn alt small" data-a="leave">Leave</button></div>
-  ${App.local ? '' : `<section class="invite" aria-label="Invite friends"><div class="note">Room code · ${L.public ? 'public room, chat is filtered' : 'private room'}</div>
-   <div class="bigcode" aria-label="Room code ${esc(App.code.split('').join(' '))}">${esc(App.code)}</div>
-   <div class="row"><button class="btn gold" data-a="share-invite">📲 Share invite</button><button class="btn alt" data-a="copy-code">Copy link</button></div>
-   <p class="note">${H ? 'You’re the host: you pick the rules and press Start. The game runs on the server, so closing this page won’t stop it.' : 'Waiting for the host to start the match.'}</p></section>`}
-  ${funChipsHTML(L, H)}
-  <section class="blk"><h2>Players ${L.members.length}/${L.seatsWanted}</h2><ul class="list">
-  ${L.members.map(x => `<li>${avatar(x.uid)}<span class="dot ${x.bot || App.online.has(x.uid) || x.uid === App.uid || App.local ? 'on' : ''}" title="${x.bot ? 'Bot' : App.online.has(x.uid) ? 'Connected' : 'Not connected'}"></span>
-   <span class="grow pname">${esc(x.name)}${x.uid === App.uid ? ' (you)' : ''}${x.uid === p.hostUid ? ' <span class="tagp">Host</span>' : ''}${x.bot && !H ? ` <span class="tagp">🤖 Bot, ${(LEVELS.find(l => l[0] === x.level) || LEVELS[1])[1]}</span>` : ''}</span>
-   ${x.bot && H ? `<span class="tagp" title="Bot">🤖</span><select class="lvl" data-change="botlevel" data-u="${esc(x.uid)}" aria-label="Level for ${esc(x.name)}">${LEVELS.map(([k, l]) => `<option value="${k}" ${x.level === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : ''}
-   ${H && x.uid !== App.uid ? `<button class="btn alt small rm" data-a="remove" data-u="${esc(x.uid)}" aria-label="Remove ${esc(x.name)}">✕</button>` : ''}</li>`).join('')}</ul>
-  ${H ? `<details class="set" data-set="Table settings" ${App.openSets.has('Table settings') ? 'open' : ''}><summary>Table settings</summary><div class="row" style="margin-top:12px"><span>Seats</span><span class="seg">${[4, 5].map(n => `<button data-a="seats" data-n="${n}" aria-pressed="${L.seatsWanted === n}">${n}</button>`).join('')}</span>
-   <button class="btn alt small" data-a="add-bot" ${full ? 'disabled' : ''}>Add a bot</button><button class="btn alt small" data-a="fill-bots" ${full ? 'disabled' : ''}>Fill with bots</button></div>
-   <div class="row" style="margin-top:10px"><span>Bot thinking time</span><span class="seg"><button data-a="speed" data-k="real" aria-pressed="${L.botSpeed !== 'quick'}">5–15 s</button><button data-a="speed" data-k="quick" aria-pressed="${L.botSpeed === 'quick'}">Quick</button></span></div>
-   ${L.seatsWanted === 5 ? `<div class="row" style="margin-top:10px"><span>Five-player deal</span><span class="seg"><button data-a="mode" data-m="single" aria-pressed="${L.mode === 'single'}">12 to one player</button><button data-a="mode" data-m="split" aria-pressed="${L.mode === 'split'}">11 to two players</button></span></div>` : ''}`
-   : `<p class="note">${L.seatsWanted} seats${L.seatsWanted === 5 ? (L.mode === 'single' ? ', one player gets 12 cards each hand' : ', two players get 11 cards each hand') : ''}.</p>`}
-  <p class="note">Award date timezone: ${esc(L.tz)}. Humans get ${L.blitz ? '10 seconds (Blitz)' : '90 seconds'} per move.</p>${H ? '</details>' : ''}
-  ${(L.watchers || []).length ? `<p class="note">👀 Watching: ${L.watchers.map(w => esc(w.name)).join(', ')}</p>` : ''}</section>
-  ${conspiracyHTML(L, H)}${V7.lobbyHTML(L, H)}
-  <section class="blk"><h2>Series</h2>
-   ${H ? `<div class="row"><span>First to</span><span class="seg">${[2, 3, 5].map(n => `<button data-a="series" data-n="${n}" aria-pressed="${(L.target || 5) === n}">${n}</button>`).join('')}</span><span>Donkey losses</span></div>`
-   : `<p>First to <b>${L.target || 5}</b> Donkey losses becomes Donkey of the Day.</p>`}
-   <p class="note">The series is announced when the match starts and can’t change mid-match.</p></section>
-  <section class="blk"><h2>Donkey names by level</h2>
+  return lobbySeatedHTML(p, L, H);
+}
+/* ---------- lobby (redesigned): invite card, seat cards, house rules, advanced settings, sticky start bar ---------- */
+const RULES_INFO = [
+  ['shuffle', '🔀', 'Shuffle power', 'The Donkey picks the shuffle, the player on their left cuts the deck.'],
+  ['powers', '✨', 'Magic cards', 'First one out each hand earns Peek, Shield, Swap or Reverse.'],
+  ['blitz', '⚡', 'Blitz', '10 seconds per move instead of 90.'],
+  ['bets', '🎲', 'Bet on the Donkey', 'Players who are out guess who loses the hand.'],
+  ['mute', '🤐', 'Mute the Donkey', 'The Donkey can’t chat during the next hand.']
+];
+const SPICE_OPTS = [['device', 'Each phone'], ['off', 'Off'], ['halka', 'Halka'], ['teekha', 'Teekha']];
+const lbSeg = (attr, opts, cur) => `<span class="seg wrapseg" role="group">${opts.map(([k, l, extra]) => `<button ${attr.replace('{k}', k)} aria-pressed="${String(cur) === String(k)}" ${extra || ''}>${l}</button>`).join('')}</span>`;
+
+function lobbyInviteHTML(L, H) {
+  const link = location.host + '/?room=' + App.code;
+  return `<section class="lb-card lb-invite" aria-label="Invite friends">
+    <div class="lb-label">Invite friends</div>
+    <div class="bigcode" aria-label="Room code ${esc(App.code.split('').join(' '))}">${esc(App.code)}</div>
+    <div class="lb-link" title="Anyone with this link can join">${esc(link)}</div>
+    <div class="lb-btns"><button class="btn gold" data-a="share-invite">📲 Share invite</button><button class="btn alt" data-a="copy-code">Copy link</button></div>
+  </section>`;
+}
+
+function lobbySeatsHTML(p, L, H) {
+  const n = L.seatsWanted, have = L.members.length, open = n - have;
+  const rows = L.members.map(x => {
+    const online = x.bot || App.online.has(x.uid) || x.uid === App.uid || App.local, lvl = (LEVELS.find(l => l[0] === x.level) || LEVELS[1]);
+    const tags = (x.uid === p.hostUid ? '<span class="lb-tag host">👑 Host</span>' : '') + (x.uid === App.uid ? '<span class="lb-tag you">You</span>' : '') + (x.bot ? `<span class="lb-tag bot">🤖 ${lvl[1]}</span>` : '');
+    const ctl = (x.bot && H ? `<select class="lvl" data-change="botlevel" data-u="${esc(x.uid)}" aria-label="Level for ${esc(x.name)}">${LEVELS.map(([k, l]) => `<option value="${k}" ${x.level === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : '') +
+      (H && x.uid !== App.uid ? `<button class="btn alt small rm" data-a="remove" data-u="${esc(x.uid)}" aria-label="Remove ${esc(x.name)}">✕</button>` : '');
+    return `<li class="seat-row ${x.uid === App.uid ? 'me' : ''} ${x.bot && H ? 'bot-h' : ''}">${avatar(x.uid)}
+      <div class="seat-main"><div class="seat-name"><span class="dot ${online ? 'on' : ''}" title="${x.bot ? 'Bot' : online ? 'Connected' : 'Not connected'}"></span>${esc(x.name)}</div><div class="seat-tags">${tags}</div></div>
+      ${ctl ? `<div class="seat-ctl">${ctl}</div>` : ''}</li>`;
+  }).join('');
+  const empties = Array.from({ length: open }, (_, i) => `<li class="seat-row empty"><span class="av ghost" aria-hidden="true">+</span>
+      <div class="seat-main"><div class="seat-name">Open seat</div><div class="seat-tags">${App.local ? 'Adding a bot…' : 'Waiting for a friend to join'}</div></div>
+      ${H ? '<button class="btn alt small" data-a="add-bot">🤖 Add bot</button>' : ''}</li>`).join('');
+  const pips = Array.from({ length: n }, (_, i) => `<i class="${i < have ? 'on' : ''}"></i>`).join('');
+  return `<section class="lb-card lb-seats"><div class="lb-title"><h2>Players</h2><span class="lb-count" aria-label="${have} of ${n} seats filled"><span class="lb-pips" aria-hidden="true">${pips}</span>${have}/${n}</span></div>
+    <ul class="seat-list">${rows}${empties}</ul>
+    ${(L.watchers || []).length ? `<p class="note lb-watch">👀 Watching: ${L.watchers.map(w => esc(w.name)).join(', ')}</p>` : ''}</section>`;
+}
+
+function lobbyRulesHTML(L, H) {
+  const F = L.fun || {}, timer = F.blitz ? '10 seconds (Blitz)' : '90 seconds';
+  const row = ([k, ico, name, desc]) => H
+    ? `<button class="rule-row" role="switch" aria-checked="${!!F[k]}" data-a="v7-fun" data-k="${k}" data-v="${F[k] ? '0' : '1'}"><span class="rule-ico" aria-hidden="true">${ico}</span><span class="rule-txt"><b>${name}</b><span>${desc}</span></span><span class="switch" aria-hidden="true"></span></button>`
+    : `<div class="rule-row static"><span class="rule-ico" aria-hidden="true">${ico}</span><span class="rule-txt"><b>${name}</b><span>${desc}</span></span><span class="tagp ${F[k] ? 'go' : ''}">${F[k] ? 'On' : 'Off'}</span></div>`;
+  const line = (label, ctl, note, cls) => `<div class="match-row ${cls || ''}"><div class="match-lbl">${label}${note ? `<span class="note">${note}</span>` : ''}</div><div class="match-ctl">${ctl}</div></div>`;
+  const spiceName = (SPICE_OPTS.find(x => x[0] === (F.spice || 'device')) || SPICE_OPTS[0])[1];
+  return `<section class="lb-card lb-rules"><div class="lb-title"><h2>House rules</h2></div>
+    <div class="rule-list">${RULES_INFO.map(row).join('')}</div>
+    <div class="lb-title sub"><h3>Match</h3></div>
+    ${line('Series', H ? lbSeg('data-a="series" data-n="{k}"', [[2, '2'], [3, '3'], [5, '5']], L.target || 5) : `<b>${L.target || 5}</b>`, 'First to this many Donkey losses is Donkey of the Day. Fixed once the match starts.')}
+    ${line('Seats', H ? lbSeg('data-a="seats" data-n="{k}"', [[4, '4'], [5, '5']], L.seatsWanted) : `<b>${L.seatsWanted}</b>`)}
+    ${L.seatsWanted === 5 ? line('Five-player deal', H ? lbSeg('data-a="mode" data-m="{k}"', [['single', '12 to one'], ['split', '11 to two']], L.mode) : `<b>${L.mode === 'single' ? '12 to one player' : '11 to two players'}</b>`) : ''}
+    ${line('Turn timer', `<b>${timer}</b>`, 'Change it with the Blitz rule above.')}
+    ${line('Bot thinking time', H ? lbSeg('data-a="speed" data-k="{k}"', [['real', '5–15 s'], ['quick', 'Quick']], L.botSpeed === 'quick' ? 'quick' : 'real') : `<b>${L.botSpeed === 'quick' ? 'Quick' : '5–15 s'}</b>`)}
+    ${line('Commentary', H ? lbSeg('data-a="v7-spice" data-k="{k}"', SPICE_OPTS, F.spice || 'device') : `<b>${spiceName}</b>`, 'Bablu Bhaiya and Chacha. “Each phone” lets everyone choose for themselves.', 'stack')}
+  </section>`;
+}
+
+/* the less-used settings, tucked into one fold (each part keeps the markup the rest of the app expects) */
+function lobbyMoreHTML(L, H, nowTitle) {
+  const sub = html => html.replace(/<section class="blk"><h2>([^<]+)<\/h2>([\s\S]*?)<\/section>/g, (all, t, body) => `<section class="sub"><h3>${t}</h3>${body}</section>`);
+  const names = `<section class="blk"><h2>Donkey names by level</h2>
    <p class="note">Each loss moves a player up a level and gives them a random name from that level’s list. The player who loses the series gets a level 5 name. The others can swap a name for another or type their own.</p>
    ${H ? `<div class="row"><span class="seg"><button data-a="titles-on" data-k="1" aria-pressed="${L.titlesOn}">On</button><button data-a="titles-on" data-k="0" aria-pressed="${!L.titlesOn}">Off</button></span></div>
     ${L.titlesOn ? `<ol class="titles">${L.titles.map((l, i) => `<li><label class="note" for="tl${i}">${i === 4 ? 'Level 5, series loser' : 'Level ' + (i + 1) + ', loss ' + (i + 1)}</label><input id="tl${i}" class="t" data-live="server" data-change="levels" value="${esc(l.join(', '))}"></li>`).join('')}</ol><p class="note">Separate names with commas.</p>` : ''}`
-   : L.titlesOn ? `<ol class="titles">${L.titles.map((l, i) => `<li><span class="note">Level ${i + 1}</span><span>${l.map(esc).join(', ')}</span></li>`).join('')}</ol>` : '<p class="note">Donkey names are off for this room.</p>'}</section>
-  <section class="blk"><h2>Suit names</h2><div class="row">${suitSeg()}</div></section>
-  <section class="blk"><h2>Music</h2><p>Room track: <b>${esc(nowTitle)}</b>. You hear: <b>${esc(App.musicLabel())}</b></p>
-   <div class="row"><button class="btn alt small" data-a="music">Choose music</button></div></section>
-  <div class="lobbybar"><section class="blk you">
-   <div class="row"><span class="tagp go">♪ ${esc(App.musicLabel())}</span><button class="btn alt small" data-a="music">Music</button><button class="btn alt chatbtn2" data-a="chat">💬 Chat${unreadBadge()}</button></div>
-   </section>
-  ${H ? `<section class="blk startrow"><button class="btn gold" data-a="start" ${full ? '' : 'disabled'}>Start match</button>${full ? '' : '<button class="btn alt" data-a="fill-bots">Fill with bots</button>'}<span class="note">${startWhy}</span></section>` : `<p class="note" style="margin-top:22px">${startWhy} The host starts the match.</p>`}
-  </div></div>`);
+   : L.titlesOn ? `<ol class="titles">${L.titles.map((l, i) => `<li><span class="note">Level ${i + 1}</span><span>${l.map(esc).join(', ')}</span></li>`).join('')}</ol>` : '<p class="note">Donkey names are off for this room.</p>'}</section>`;
+  const suits = `<section class="blk"><h2>Suit names</h2><div class="row">${suitSeg()}</div></section>`;
+  const music = `<section class="blk"><h2>Music</h2><p>Room track: <b>${esc(nowTitle)}</b>. You hear: <b>${esc(App.musicLabel())}</b></p><div class="row"><button class="btn alt small" data-a="music">Choose music</button></div></section>`;
+  return `<details class="set lb-more" data-set="More settings" ${App.openSets.has('More settings') ? 'open' : ''}><summary>More settings <span class="note">bot conspiracy, donkey names, nicknames, suits, music</span></summary>${sub(conspiracyHTML(L, H) + names + suits + music)}${V7.nickHTML(L, H)}</details>`;
 }
-function foldSections(html) {
-  const parts = []; let first = -1;
-  html = html.replace(/<section class="blk"><h2>([^<]+)<\/h2>([\s\S]*?)<\/section>/g, (all, t, body, off) => {
-    if (/^Players/.test(t)) return all;
-    parts.push(`<section class="sub"><h3>${t}</h3>${body}</section>`); return '\u0000';
-  });
-  const i = html.indexOf('\u0000'); if (i < 0) return html;
-  html = html.replace(/\u0000/g, '');
-  const fold = `<details class="set" data-set="Room settings" ${App.openSets.has('Room settings') ? 'open' : ''}><summary>Room settings</summary>${parts.join('')}</details>`;
-  return html.slice(0, i) + fold + html.slice(i);
+
+function lobbySeatedHTML(p, L, H) {
+  const have = L.members.length, n = L.seatsWanted, full = have === n, missing = n - have;
+  const nowTitle = p.music.kind === 'song' ? p.music.song.title : App.trackFor(p.music).title;
+  const status = full ? (H ? 'Every seat is filled. Ready when you are.' : 'Every seat is filled. Waiting for the host to start.')
+    : `Waiting for ${missing} more player${missing > 1 ? 's' : ''}${H ? '. Share the code, or fill the seats with bots.' : '.'}`;
+  const pips = Array.from({ length: n }, (_, i) => `<i class="${i < have ? 'on' : ''}"></i>`).join('');
+  return `<div class="wrap lb">
+    <header class="lb-head"><div><div class="lb-eyebrow">Donkey of the Day</div><h1>${App.local ? 'Practice table' : 'Table lobby'}</h1></div>
+      <div class="lb-actions">${App.local ? '' : `<span class="lb-badge ${L.public ? 'pub' : ''}" title="${L.public ? 'Public room: chat is filtered and song uploads are off' : 'Private room: only people with the code can join'}">${L.public ? '🌐 Public room' : '🔒 Private room'}</span>`}
+        <button class="btn alt small" data-a="help" aria-label="How to play">?</button><button class="btn alt small" data-a="leave">Leave</button></div></header>
+    <div class="lb-grid">
+      <div class="lb-col lb-left">${App.local ? '' : lobbyInviteHTML(L, H)}${lobbySeatsHTML(p, L, H)}</div>
+      <div class="lb-col lb-right">${lobbyRulesHTML(L, H)}${lobbyMoreHTML(L, H, nowTitle)}</div>
+    </div>
+    <div class="lb-bar" role="region" aria-label="Start the match">
+      <div class="lb-status"><span class="lb-pips" aria-hidden="true">${pips}</span><span class="lb-statustext"><b>${have} of ${n} seated</b><span>${status}</span></span></div>
+      <div class="lb-barbtns">
+        <button class="btn alt small lb-music" data-a="music" title="Room music" aria-label="Music: ${esc(App.musicLabel())}">♪ <span class="lb-hide-s">${esc(App.musicLabel())}</span></button>
+        <button class="btn alt small chatbtn2" data-a="chat" aria-label="Chat">💬<span class="lb-hide-s"> Chat</span>${unreadBadge()}</button>
+        ${H ? `${full ? '' : '<button class="btn alt lb-fill" data-a="fill-bots">🤖 <span class="lb-hide-s">Fill with bots</span><span class="lb-show-s">Fill</span></button>'}<button class="btn gold lb-start" data-a="start" ${full ? '' : 'disabled'}>Start match</button>` : '<span class="lb-wait">Host starts the match</span>'}
+      </div>
+    </div>
+  </div>`;
 }
+
 function pipsHTML(n, of) { of = of || (App.pub && App.pub.match && App.pub.match.target) || (App.pub && App.pub.lobby && App.pub.lobby.target) || 5; return `<span class="pips" aria-label="${n} of ${of} losses">${Array.from({ length: of }, (_, i) => i).map(i => `<span class="pip ${i < n ? 'on' : ''}"></span>`).join('')}</span>`; }
 function timerHTML(dl, total) { if (!dl) return ''; return `<div class="timer" data-dl="${dl}" data-total="${total}"><i></i></div><div class="tlabel"></div>`; }
 function seatsOrder(m) { const s = m.seats || m.lobby; const i = s.indexOf(App.uid); return i < 0 ? s : [...s.slice(i + 1), ...s.slice(0, i)]; }
@@ -1195,25 +1235,15 @@ const V7 = {
     }
     return '';
   },
-  /* ----- lobby ----- */
-  lobbyHTML(L, H) {
-    const F = L.fun || {}, tog = (k, l, d) => `<div class="funrow"><div class="grow"><b>${l}</b><div class="note">${d}</div></div>${H ? `<span class="seg"><button data-a="v7-fun" data-k="${k}" data-v="0" aria-pressed="${!F[k]}">Off</button><button data-a="v7-fun" data-k="${k}" data-v="1" aria-pressed="${!!F[k]}">On</button></span>` : `<span class="tagp ${F[k] ? 'go' : ''}">${F[k] ? 'On' : 'Off'}</span>`}</div>`;
-    const sp = [['device', 'Each phone'], ['off', 'Off'], ['halka', 'Halka'], ['teekha', 'Teekha']];
+  /* ----- lobby: nicknames and inside jokes (the rest of the lobby lives in lobbySeatedHTML) ----- */
+  nickHTML(L, H) {
     const nick = L.nick || {}, jokes = L.jokes || [];
-    return `<section class="blk"><h2>Fun rules</h2>
-      ${tog('shuffle', 'Donkey’s Shuffle Power', 'The Donkey picks the shuffle, the player on their left cuts the deck.')}
-      ${tog('powers', 'Magic cards', 'First one out each hand earns Peek, Shield, Swap or Reverse.')}
-      ${tog('blitz', 'Blitz', '10 seconds per move instead of 90.')}
-      ${tog('bets', 'Bet on the Donkey', 'Players who are out guess who loses the hand.')}
-      ${tog('mute', 'Mute the Donkey', 'The Donkey can’t chat during the next hand.')}
-      <div class="funrow"><div class="grow"><b>Commentary spice for the room</b><div class="note">Each phone lets everyone choose for themselves.</div></div></div>
-      ${H ? `<span class="seg wrapseg">${sp.map(([k, l]) => `<button data-a="v7-spice" data-k="${k}" aria-pressed="${(F.spice || 'device') === k}">${l}</button>`).join('')}</span>` : `<p class="note">${(sp.find(x => x[0] === (F.spice || 'device')) || sp[0])[1]}</p>`}</section>
-    <details class="set" data-set="Nicknames" ${App.openSets.has('Nicknames') ? 'open' : ''}><summary>Nicknames and inside jokes</summary>
+    return `<section class="sub"><h3>Nicknames and inside jokes</h3>
       <p class="note">Nicknames show in commentary. Anyone can nickname anyone.</p>
       ${(L.members || []).map(x => `<div class="row nickrow">${avatar(x.uid)}<span class="nm">${esc(x.name)}</span><input id="nick-${esc(x.uid)}" class="t grow" maxlength="20" placeholder="Nickname" value="${esc(nick[x.uid] || '')}" aria-label="Nickname for ${esc(x.name)}"><button class="btn alt small" data-a="v7-nick" data-u="${esc(x.uid)}">Save</button></div>`).join('')}
-      <h3 style="font-size:20px;margin-top:14px">Inside jokes</h3><p class="note">The commentator slips these in. Use {u} for the player in the moment.</p>
+      <h4 class="sub">Inside jokes</h4><p class="note">The commentator slips these in. Use {u} for the player in the moment.</p>
       <ul class="jokes">${jokes.map((j, i) => `<li><span class="grow">${esc(j.x)}</span>${H ? `<button class="btn alt small" data-a="v7-joke-del" data-i="${i}" aria-label="Delete joke">✕</button>` : ''}</li>`).join('') || '<li class="note">No jokes yet.</li>'}</ul>
-      <div class="row"><input id="jokein" class="t grow" maxlength="120" placeholder="{u} ki chai phir thandi ho gayi" aria-label="New inside joke"><button class="btn small" data-a="v7-joke">Add</button></div></details>`;
+      <div class="row"><input id="jokein" class="t grow" maxlength="120" placeholder="{u} ki chai phir thandi ho gayi" aria-label="New inside joke"><button class="btn small" data-a="v7-joke">Add</button></div></section>`;
   },
   /* ----- scores: stats and rivalries ----- */
   statsHTML(m) {
