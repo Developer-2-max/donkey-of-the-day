@@ -172,7 +172,17 @@ let manifestCache = { at: 0, body: null };
 function audioManifest() {
   if (Date.now() - manifestCache.at < 5000 && manifestCache.body) return manifestCache.body;
   const ls = sub => { try { return fs.readdirSync(path.join(AUDIO_DIR, sub)).filter(f => /\.(mp3|m4a|ogg|wav)$/i.test(f)).reduce((o, f) => (o[f.replace(/\.[^.]+$/, '')] = f, o), {}); } catch (e) { return {}; } };
-  manifestCache = { at: Date.now(), body: { music: ls('music'), commentary: ls('commentary') } }; return manifestCache.body;
+  const music = ls('music');
+  // Music may be stored with human-readable filenames. titles.json links those filenames to catalog IDs.
+  try {
+    const titles = JSON.parse(fs.readFileSync(path.join(AUDIO_DIR, 'titles.json'), 'utf8').replace(/^\uFEFF/, ''));
+    const byTitle = Object.entries(titles).reduce((o, [id, title]) => { o[String(title).trim().toLowerCase()] = id; return o; }, {});
+    for (const [stem, file] of Object.entries(music)) {
+      const id = byTitle[stem.trim().toLowerCase()];
+      if (id) { music[id] = file; delete music[stem]; }
+    }
+  } catch (e) {}
+  manifestCache = { at: Date.now(), body: { music, commentary: ls('commentary') } }; return manifestCache.body;
 }
 app.get('/audio/manifest.json', (req, res) => { res.set('Cache-Control', 'no-cache'); res.json(audioManifest()); });
 app.use('/audio', express.static(AUDIO_DIR, { maxAge: '7d', index: false, dotfiles: 'deny' }));   // range requests work, so phones can seek to the shared position

@@ -23,6 +23,19 @@ test('serves the page, shared code, audio manifest, privacy pages and PWA files;
   assert.equal((await fetch(srv.url + '/audio/../server.js')).status === 200, false);
 });
 
+test('maps human-readable music filenames when titles.json has a UTF-8 BOM', async () => {
+  const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'dotd-audio-'));
+  fs.mkdirSync(path.join(dir, 'audio', 'music'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'audio', 'music', 'Aankh Marey.mp3'), Buffer.alloc(1000));
+  fs.writeFileSync(path.join(dir, 'audio', 'titles.json'), '\uFEFF{"chill-01":"Aankh Marey"}');
+  const audioSrv = await startServer({}, { dir });
+  try {
+    const manifest = await (await fetch(audioSrv.url + '/audio/manifest.json')).json();
+    assert.equal(manifest.music['chill-01'], 'Aankh Marey.mp3');
+    assert.equal(manifest.music['Aankh Marey'], undefined);
+  } finally { await audioSrv.stop(); }
+});
+
 test('Start works as soon as the seats are full: no Ready, no music step', async () => {
   const { host, code } = await mkRoom();
   const g = player(srv.url); await g.ready; assert.equal((await g.call('join', { code, name: 'Guest' })).ok, true);

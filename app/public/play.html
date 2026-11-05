@@ -83,6 +83,27 @@ section.blk > h2{ font-size:26px; }
 .track{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; border:1.5px solid var(--line); background:var(--surface); text-align:left; width:100%; }
 .track.sel{ border-color:var(--marigold); box-shadow:0 0 0 2px var(--marigold) inset; }
 .track b{ font-weight:700; }
+.music-hero{ display:flex; align-items:center; gap:12px; padding:14px; margin-top:12px; border-radius:16px; background:linear-gradient(135deg,rgba(242,165,22,.18),rgba(200,29,99,.09)); border:1.5px solid var(--line); }
+.music-disc{ display:grid; place-items:center; width:52px; height:52px; flex:none; border-radius:50%; background:var(--felt); color:var(--marigold); font-size:25px; box-shadow:0 0 0 5px color-mix(in srgb,var(--felt) 14%,transparent); }
+.music-hero .eyebrow{ color:var(--muted); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+.music-hero h3{ font-family:var(--body); font-size:20px; font-weight:700; margin-top:1px; }
+.music-source{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+.music-source .track{ min-height:64px; }
+.music-source .track.sel{ background:color-mix(in srgb,var(--marigold) 12%,var(--surface)); }
+.music-source .source-icon{ font-size:22px; width:28px; text-align:center; }
+.music-tools{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:20px; }
+.music-tools h3{ font-family:var(--display); font-size:22px; }
+.music-tools .note{ text-align:right; }
+.music-group{ margin-top:16px; }
+.music-group-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.music-group-head .sub{ margin:0; }
+.music-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:8px; }
+.music-grid .track{ min-height:58px; padding:9px 10px; }
+.music-grid .track .music-num{ color:var(--muted); font-size:13px; font-weight:700; min-width:22px; }
+.music-grid .track .music-state{ color:var(--ok); font-size:12px; font-weight:700; white-space:nowrap; }
+.music-grid .track.sel{ background:color-mix(in srgb,var(--marigold) 12%,var(--surface)); }
+.music-grid .track.sel .music-state{ color:var(--ink); }
+@media (max-width:440px){ .music-source,.music-grid{ grid-template-columns:1fr; } .music-hero{ padding:12px; } }
 .seg{ display:inline-flex; border-radius:10px; box-shadow:inset 0 0 0 1.5px var(--line); overflow:hidden; }
 .seg button{ border:0; background:transparent; padding:8px 14px; min-height:40px; }
 .seg button[aria-pressed="true"]{ background:var(--felt); color:var(--feltInk); }

@@ -75,9 +75,33 @@ docker compose up -d --build               # builds and starts the game on 127.0
 ```
 nginx is already in front with HTTPS (certbot); use the config in `deploy/nginx.conf` (it adds `X-Forwarded-Proto` and the upload size limit to your existing one), then `sudo nginx -t && sudo systemctl reload nginx`.
 
+### Adding music on the VPS
+
+The VPS does not play audio itself. It serves the files over HTTPS, and every player's browser plays
+the selected track locally. The repository-level `music/` folder is mounted into the container. The
+files can keep their human-readable names:
+
+```
+music/Aankh Marey.mp3
+music/Kala Chashma.mp3
+music/Zingaat.mp3
+```
+
+The ID-to-title mapping is in `app/data/audio/titles.json`; it makes `Aankh Marey.mp3` play for
+catalog slot `chill-01`, for example. The complete list of IDs is in `shared/catalog.js`. The server
+publishes the mapped files through `/audio/music/`. After copying or replacing files on the VPS,
+restart the container:
+
+```
+docker compose restart donkey
+```
+
+Players must tap the game once before audio can start because browsers block autoplay. Use only music
+you have permission to stream; public-room uploads are intentionally disabled.
+
 * **Update:** `git pull && docker compose up -d --build`. Rooms are saved on shutdown and resume.
 * **Logs / status / health:** `docker compose logs -f donkey`, `docker compose ps`, `curl http://127.0.0.1:3000/healthz`.
-* **Data** (rooms, profiles, Hall of Shame, reports, uploads, audio) lives in the Docker volume `donkey-data`, so it survives rebuilds. **Back it up:**
+* **Data** (rooms, profiles, Hall of Shame, reports and uploads) lives in the Docker volume `donkey-data`, so it survives rebuilds. Recorded audio is kept in `app/data/audio` on the VPS. Back up both locations.
   `docker run --rm -v donkey-of-the-day_donkey-data:/data -v "$PWD":/out alpine tar czf /out/donkey-backup-$(date +%F).tgz -C /data .`
 * **Settings** are environment variables in `.env` (table below). After editing, `docker compose up -d` applies them.
 * **Moderation reports:** `docker compose exec donkey tail -n 20 /data/reports.jsonl`.
@@ -86,9 +110,13 @@ The container runs as a non-root user, the port is bound to localhost only (noth
 
 ## 3. Adding the 30 songs and the commentary voices
 
-Files go in the audio folder (`$DATA_DIR/audio`, or set `AUDIO_DIR`). With Docker that folder is inside the `donkey-data` volume: copy files in with `docker compose cp ./my-audio/. donkey:/data/audio/` (for example a `music` and a `commentary` folder), no restart needed. The server lists what exists at `/audio/manifest.json`; a clip or track is used only when its file is present, and everything else falls back to text or synth. No restart is needed.
+Files go in the audio folder (`$DATA_DIR/audio`, or set `AUDIO_DIR`). With the repository's Docker
+compose setup, music goes in the repository-level `music/` folder and commentary goes in
+`app/data/audio/commentary/`. The server lists what exists at
+`/audio/manifest.json`; a clip or track is used only when its file is present, and everything else
+falls back to text or synth. No restart is needed.
 
-* **Music:** `audio/music/<id>.mp3` where `<id>` is a catalog id such as `chill-01`, `masti-03`, `tension-02`, `retro-04`, `devotional-01` (the full list is in `shared/catalog.js`). MP3 at 128 kbps, 2–3 minutes. The titles in the catalog are placeholders; rename them there when the real tracks are chosen.
+* **Music:** human-readable files such as `music/Aankh Marey.mp3` are mapped through `audio/titles.json` to catalog IDs such as `chill-01`. MP3 at 128 kbps, 2–3 minutes. Keep the title mapping updated when tracks are replaced.
 * **Commentary:** `audio/commentary/<line id>.mp3`, for example `bablu.base.cut.2.mp3` or `chacha.spicy.donkey.0.mp3`. Run `node scripts/commentary-script.js > sheet.csv` for the full recording sheet (ID, speaker, on-screen text and a "say this" version). 20–40 KB each. Many Lab lines contain player names ({u}, {to}): a recording can't contain a name, so the sheet gives a neutral spoken stand-in and the screen shows the real names while the clip plays. Add new lines to the **end** of a list in `shared/commentary.js` so existing IDs never change.
 * **Licensing and consent come first.** Use tracks whose licence covers in-app use, or commission them. Get **signed consent** from every voice artist (or from the person whose voice is cloned) before recording.
 

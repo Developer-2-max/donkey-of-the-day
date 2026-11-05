@@ -56,13 +56,13 @@ const Net = {
   call(ev, data) { return new Promise(res => { const s = this.socket; if (!s || !s.connected) return res({ error: 'OFFLINE' }); s.timeout(10000).emit(ev, data, (err, r) => res(err ? { error: 'TIMEOUT' } : (r || {}))); }); }
 };
 
-/* ---------- recorded commentary voices ----------
-   The Lab spoke every line with the phone's built-in voice, which fails on many phones. Here a line plays a recording when
-   /audio/commentary/<line id>.mp3 exists on the server, and is text only otherwise (the commentary strip always shows the text).
-   Audio is unlocked by the player's first tap, on the same audio engine as the music, which dips while a line plays. */
 const Commentary = {
   gain: null, bufs: new Map(), pending: new Map(), manifest: { music: {}, commentary: {} }, unlocked: false, busyUntil: 0, prefetched: false,
-  async loadManifest() { try { const r = await fetch('/audio/manifest.json', { cache: 'no-cache' }); if (r.ok) this.manifest = await r.json(); } catch (e) {} },
+  async loadManifest() {
+    try { const r = await fetch('/audio/manifest.json', { cache: 'no-cache' }); if (r.ok) this.manifest = await r.json(); } catch (e) {}
+    // optional: audio/titles.json ({ "chill-01": "Real title", ... }) renames catalog slots to match the files you uploaded
+    try { const r = await fetch('/audio/titles.json', { cache: 'no-cache' }); if (r.ok) { const t = await r.json(); CATALOG.forEach(s => { if (typeof t[s.id] === 'string' && t[s.id].trim()) s.title = t[s.id].trim().slice(0, 60); }); } } catch (e) {}
+  },
   hasClip(id) { return !!(this.manifest.commentary || {})[id]; },
   /* must run inside a tap or key press: browsers keep audio locked until then */
   unlock() {
@@ -401,22 +401,29 @@ function rulesHTML(open = true) {
 function musicHTML() {
   const p = App.pub, mu = p.music, pk = App.musicPick, blk = App.musicBlock(), pubRoom = !!p.lobby.public;
   const nowTitle = mu.kind === 'song' ? mu.song.title : App.trackFor(mu).title;
-  const opt = (src, title, note) => `<button class="track ${pk.src === src ? 'sel' : ''}" data-a="pick-src" data-src="${src}" aria-pressed="${pk.src === src}"><span class="grow"><b>${title}</b><br><span class="note">${note}</span></span></button>`;
+  const opt = (src, icon, title, note) => `<button class="track ${pk.src === src ? 'sel' : ''}" data-a="pick-src" data-src="${src}" aria-pressed="${pk.src === src}"><span class="source-icon" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><br><span class="note">${note}</span></span>${pk.src === src ? '<span aria-hidden="true">✓</span>' : ''}</button>`;
   const dis = blk ? 'disabled' : '';
   const songs = pubRoom ? [] : App.songList();
   const anyRecorded = Object.keys(Commentary.manifest.music || {}).length > 0;
+  const card = (t, i) => {
+    const selected = mu.kind !== 'song' && mu.track === t.id;
+    const recorded = !!(Commentary.manifest.music || {})[t.id];
+    return `<button class="track ${selected ? 'sel' : ''}" data-a="set-track" data-t="${t.id}" ${dis} aria-pressed="${selected}">
+      <span class="music-num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="grow"><b>${esc(t.title)}</b><br><span class="note">${recorded ? 'Full song' : 'Built-in version'}</span></span>
+      ${selected ? '<span class="music-state">Playing</span>' : ''}</button>`;
+  };
   return `<h3 style="font-size:20px">What you hear</h3><p class="note">Music is optional and never blocks Start. The room song begins after your first tap.</p>
-  <div class="tracks">${opt('room', 'Room music', 'The song the table is playing, in sync')}${opt('own', 'My music app', 'Spotify, JioSaavn or YouTube Music playing alongside the game')}</div>
+  <div class="music-hero"><span class="music-disc" aria-hidden="true">♫</span><span class="grow"><span class="eyebrow">Now playing</span><h3>${esc(nowTitle)}</h3>${mu.by ? '<span class="note">Picked by ' + esc(nameOf(mu.by)) + '</span>' : '<span class="note">Shared with the table</span>'}</span></div>
+  <div class="music-source">${opt('room', '🎧', 'Room music', 'One synced song for everyone')}${opt('own', '📱', 'My music app', 'Use Spotify, JioSaavn or YouTube Music')}</div>
   ${pk.src === 'own' ? `<p class="note">Start your playlist in the app, then come back. Your app keeps playing in the background.</p><a class="btn alt" href="https://open.spotify.com" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">Open Spotify</a>` : ''}
   ${pk.src !== 'own' && Music.state !== 'on' ? '<p><button class="btn gold small" data-a="audio">🔊 Turn on sound</button></p>' : ''}
   ${Music.blocked || Music.songError ? `<p class="err">${Music.songError ? 'This device can’t play the current song file, so the built-in version plays instead.' : 'Your browser paused the music.'} <button class="btn alt small" data-a="audio">Try again</button></p>` : ''}
-  <section class="blk"><h3 style="font-size:20px">Room music</h3>
-  <div class="nowbar"><span class="grow">Now playing: <b>${esc(nowTitle)}</b>${mu.by ? '<br><span class="note">picked by ' + esc(nameOf(mu.by)) + '</span>' : ''}</span>
-    <button class="btn gold" data-a="next-song" ${blk ? 'disabled' : ''}>⏭ Next song</button></div>
-  <p class="note">Any seated player can change the song at any time. Whoever has the most losses can’t touch the music until they make a comeback.</p>
+  <section class="blk"><div class="music-tools"><span><h3>Choose a room song</h3><span class="note">Tap a song to change it for everyone</span></span><button class="btn gold small" data-a="next-song" ${blk ? 'disabled' : ''}>⏭ Next</button></div>
+  <p class="note">Any seated player can change the song. Whoever has the most losses can’t touch the music until they make a comeback.</p>
   ${anyRecorded ? '' : '<p class="note">Recorded songs have not been added to this server yet, so every track plays as its built-in version.</p>'}
   ${blk ? `<p class="err" role="status">${blk.why}</p>` : ''}
-  ${MOODS.map(md => `<h4 class="sub">${esc(md.label)}</h4><div class="tracks">${CATALOG.filter(t => t.mood === md.id).map(t => `<button class="track ${mu.kind !== 'song' && mu.track === t.id ? 'sel' : ''}" data-a="set-track" data-t="${t.id}" ${dis}><span class="grow"><b>${esc(t.title)}</b></span></button>`).join('')}</div>`).join('')}
+  ${MOODS.map(md => { const tracks = CATALOG.filter(t => t.mood === md.id); return `<div class="music-group"><div class="music-group-head"><h4 class="sub">${esc(md.label)}</h4><span class="note">${esc(md.note)}</span></div><div class="music-grid">${tracks.map((t, i) => card(t, i)).join('')}</div></div>`; }).join('')}
   ${pubRoom ? '<p class="note">Song uploads are turned off in public rooms. Use a private room to add your own songs.</p>' : `<h4 class="sub">Songs added by players</h4>
   <div class="tracks">${songs.map(x => `<button class="track ${mu.kind === 'song' && mu.song.id === x.id ? 'sel' : ''}" data-a="set-song" data-id="${esc(x.id)}" data-t="${esc(x.title)}" ${dis}><span class="grow"><b>${esc(x.title)}</b><br><span class="note">Added by ${esc(nameOf(x.by))}</span></span></button>`).join('') || '<p class="note">No songs yet.</p>'}</div>
   ${App.clipJob ? `<p class="status">${App.clipJob.msg}</p>` : `<label class="btn alt" style="display:inline-block;margin-top:10px">Add a song from this device<input type="file" accept="audio/*,video/mp4,video/webm,.m4a,.mp3" data-change="song" hidden></label>
@@ -1409,4 +1416,3 @@ const Prog = {
 Prog.apply();
 
 App.boot();
-
