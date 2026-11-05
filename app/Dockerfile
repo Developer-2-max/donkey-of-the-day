@@ -5,7 +5,9 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY . .
 # the game never needs root: it runs as the built-in "node" user and owns only /data
-RUN mkdir -p /data && chown -R node:node /data
+RUN mkdir -p /data/audio/music /data/audio/commentary \
+    && cp data/audio/titles.json /data/audio/titles.json \
+    && chown -R node:node /data
 USER node
 VOLUME ["/data"]
 EXPOSE 3000

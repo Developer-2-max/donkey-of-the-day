@@ -89,8 +89,9 @@ music/Zingaat.mp3
 
 The ID-to-title mapping is in `app/data/audio/titles.json`; it makes `Aankh Marey.mp3` play for
 catalog slot `chill-01`, for example. The complete list of IDs is in `shared/catalog.js`. The server
-publishes the mapped files through `/audio/music/`. After copying or replacing files on the VPS,
-restart the container:
+publishes the mapped files through `/audio/music/`. The Docker image includes the title mapping and
+the compose file mounts only the music directory; this avoids nested read-only Docker mounts. After
+copying or replacing files on the VPS, restart the container:
 
 ```
 docker compose restart donkey

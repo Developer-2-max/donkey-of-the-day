@@ -21,8 +21,6 @@ services:
       BANNED_WORDS: ${BANNED_WORDS:-}
     volumes:
       - donkey-data:/data
-      # Commentary and metadata shipped with the app.
-      - ./app/data/audio:/data/audio:ro
       # The 30 playable songs in the repository-level music folder.
       - ./music:/data/audio/music:ro
     logging:

@@ -175,7 +175,9 @@ function audioManifest() {
   const music = ls('music');
   // Music may be stored with human-readable filenames. titles.json links those filenames to catalog IDs.
   try {
-    const titles = JSON.parse(fs.readFileSync(path.join(AUDIO_DIR, 'titles.json'), 'utf8').replace(/^\uFEFF/, ''));
+    let titleFile = path.join(AUDIO_DIR, 'titles.json');
+    if (!fs.existsSync(titleFile)) titleFile = path.join(__dirname, 'data', 'audio', 'titles.json');
+    const titles = JSON.parse(fs.readFileSync(titleFile, 'utf8').replace(/^\uFEFF/, ''));
     const byTitle = Object.entries(titles).reduce((o, [id, title]) => { o[String(title).trim().toLowerCase()] = id; return o; }, {});
     for (const [stem, file] of Object.entries(music)) {
       const id = byTitle[stem.trim().toLowerCase()];
