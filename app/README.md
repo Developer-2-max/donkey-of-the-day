@@ -118,7 +118,20 @@ compose setup, music goes in the repository-level `music/` folder and commentary
 falls back to text or synth. No restart is needed.
 
 * **Music:** human-readable files such as `music/Aankh Marey.mp3` are mapped through `audio/titles.json` to catalog IDs such as `chill-01`. MP3 at 128 kbps, 2–3 minutes. Keep the title mapping updated when tracks are replaced.
-* **Commentary:** `audio/commentary/<line id>.mp3`, for example `bablu.base.cut.2.mp3` or `chacha.spicy.donkey.0.mp3`. Run `node scripts/commentary-script.js > sheet.csv` for the full recording sheet (ID, speaker, on-screen text and a "say this" version). 20–40 KB each. Many Lab lines contain player names ({u}, {to}): a recording can't contain a name, so the sheet gives a neutral spoken stand-in and the screen shows the real names while the clip plays. Add new lines to the **end** of a list in `shared/commentary.js` so existing IDs never change.
+* **Commentary:** `audio/commentary/<line id>.mp3`, for example `bablu.base.cut.2.mp3` or `chacha.spicy.donkey.0.mp3`. Generate the recording sheet with `node scripts/commentary-script.js > commentary-recording-sheet.csv`. Record each "say this" line, export short MP3 clips, and preserve the exact `id` as the filename. Many lines contain player names (`{u}`, `{to}`): record the neutral wording from the sheet; the screen still shows the real names. Add new lines only to the **end** of a list in `shared/commentary.js` so existing IDs never change.
+
+On the VPS, create the folder and copy the clips:
+
+```
+mkdir -p app/data/audio/commentary
+# Copy files such as bablu.base.cut.2.mp3 into that folder
+docker compose up -d --build --force-recreate
+curl http://127.0.0.1:3000/audio/manifest.json
+```
+
+The manifest's `commentary` object should list the uploaded clip IDs. Players must tap the game once
+to unlock browser audio. Clips are downloaded and played by each player's browser; the VPS only serves
+them. Missing clips safely fall back to on-screen commentary.
 * **Licensing and consent come first.** Use tracks whose licence covers in-app use, or commission them. Get **signed consent** from every voice artist (or from the person whose voice is cloned) before recording.
 
 `.wav`, `.m4a` and `.ogg` are also accepted by the server.

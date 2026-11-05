@@ -23,6 +23,8 @@ services:
       - donkey-data:/data
       # The 30 playable songs in the repository-level music folder.
       - ./music:/data/audio/music:ro
+      # Optional recorded commentary clips.
+      - ./app/data/audio/commentary:/data/audio/commentary:ro
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "5" }
