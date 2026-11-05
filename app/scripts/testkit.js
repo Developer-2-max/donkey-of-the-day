@@ -10,7 +10,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function startServer(env = {}, reuse = {}) {
   const port = reuse.port || await freePort(), dir = reuse.dir || fs.mkdtempSync(path.join(os.tmpdir(), 'dotd-'));
-  const child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: Object.assign({}, process.env, { PORT: String(port), DATA_DIR: dir }, env), stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: Object.assign({}, process.env, { PORT: String(port), DATA_DIR: dir, REQUIRE_LOGIN: '0' }, env), stdio: ['ignore', 'pipe', 'pipe'] });
   let log = ''; child.stdout.on('data', d => log += d); child.stderr.on('data', d => log += d);
   const url = 'http://127.0.0.1:' + port;
   for (let i = 0; i < 100; i++) { try { const r = await fetch(url + '/healthz'); if (r.ok) break; } catch (e) {} await sleep(100); }

@@ -12,7 +12,7 @@ const REASONS = { NO_POWER: "You don’t have that magic card.", NOT_IN_MATCH: '
   LOSER_NO_MUSIC: 'You have the most losses, so the music is out of your hands until you make a comeback.', UPLOADS_OFF: 'Song uploads are turned off in public rooms. Pick one of the built-in songs.',
   WATCHERS_NO_MUSIC: 'Only seated players can change the music.', EMPTY_NAME: 'Type a name first.' };
 const LOGIN_ERR = { LOGIN_OFF: 'Google sign-in is not switched on for this server.', BAD_NONCE: 'That sign-in expired. Try the Google button again.', EXPIRED: 'That sign-in expired. Try again.', BAD_TOKEN: 'Google sign-in could not be verified. Try again.', LIMIT: 'Slow down a little, then try again.', BAD_USERNAME: 'Usernames are 3 to 20 letters, numbers or underscores.', WEAK_PASSWORD: 'Passwords must be 8 to 72 characters.', TAKEN: 'That username is taken. Pick another.', BAD_CREDENTIALS: 'Wrong username or password.', LOCKED: 'Too many wrong tries. Wait 15 minutes and try again.' };
-const ERR = { NO_ROOM: 'No room uses that code. Check it with your host.', OFFLINE: 'Not connected to the game server. Check your internet and try again.', TIMEOUT: 'The server took too long to answer. Try again.', TOO_MANY_ROOMS: 'The server is full right now. Try again in a while.', SERVER: 'Something went wrong on the server. Try again.' };
+const ERR = { NO_ROOM: 'No room uses that code. Check it with your host.', OFFLINE: 'Not connected to the game server. Check your internet and try again.', TIMEOUT: 'The server took too long to answer. Try again.', NEED_LOGIN: 'Please sign in first to play.', TOO_MANY_ROOMS: 'The server is full right now. Try again in a while.', SERVER: 'Something went wrong on the server. Try again.' };
 
 /* ---------- network: one Socket.IO connection to our own game server ---------- */
 const Net = {
@@ -279,7 +279,7 @@ const App = {
   muteUser(u) { const s = this.mutedUsers; s.has(u) ? s.delete(u) : s.add(u); LS.set('dotd-muted', [...s]); this.toast(s.has(u) ? nameOf(u) + ' is muted on this device.' : nameOf(u) + ' is unmuted.'); renderChat(); },
 
   async openProfile() { this.profile = null; this.openSheet('profile'); await this.loadProfile(); },
-  async loadProfile() { this.profile = await Net.call('profile'); if (this.sheet === 'profile') { this.renderSheet(); this.setupGoogle(); } },
+  async loadProfile() { this.profile = await Net.call('profile'); if (this.sheet === 'profile') this.renderSheet(); if (this.view === 'home') this.render(); this.setupGoogle(); },
   /* Google sign-in: the server hands out a one-time nonce, Google's button returns a signed token carrying it, the server verifies and links this browser to the account */
   async setupGoogle() {
     const pr = this.profile, host = document.getElementById('gbtn'); if (!pr || pr.account || !pr.loginAvailable || !host) return;
@@ -293,14 +293,14 @@ const App = {
   },
   async googleLogin(credential) {
     const r = await Net.call('login', { credential });
-    if (r.ok) { this.toast('Signed in as ' + r.name + '.'); this.profile = null; if (this.sheet === 'profile') this.renderSheet(); await this.loadProfile(); }
+    if (r.ok) { this.toast('Signed in as ' + r.name + '.'); this.homeMsg = ''; if (!this.name) this.name = r.name; this.profile = null; if (this.sheet === 'profile') this.renderSheet(); await this.loadProfile(); }
     else { this.toast(LOGIN_ERR[r.error] || 'Sign-in failed. Try again.'); this.setupGoogle(); }
   },
   async passwordSubmit(form) {
     const u = form.elements.username.value, p = form.elements.password.value, reg = this.pwMode === 'register', err = document.getElementById('pw-err');
     const btn = form.querySelector('[type=submit]'); if (btn) btn.disabled = true;
     const r = await Net.call(reg ? 'register' : 'password-login', { username: u, password: p });
-    if (r.ok) { this.toast('Signed in as ' + r.name + '.'); this.pwMode = 'login'; this.profile = null; if (this.sheet === 'profile') this.renderSheet(); await this.loadProfile(); }
+    if (r.ok) { this.toast('Signed in as ' + r.name + '.'); this.pwMode = 'login'; this.homeMsg = ''; if (!this.name) this.name = r.name; this.profile = null; if (this.sheet === 'profile') this.renderSheet(); await this.loadProfile(); }
     else { if (btn) btn.disabled = false; const m = LOGIN_ERR[r.error] || 'Sign-in failed. Try again.'; if (err) err.textContent = m; else this.toast(m); }
   },
   async googleLogout() { await Net.call('logout'); this.toast('Signed out.'); this.profile = null; if (this.sheet === 'profile') this.renderSheet(); await this.loadProfile(); },
@@ -364,7 +364,7 @@ const App = {
     const root = $('#app'), ae = document.activeElement; const fk = ae && ae.dataset && (ae.dataset.card || ae.dataset.a);
     const keep = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && ae.id && root.contains(ae) ? { id: ae.id, v: ae.value, s: ae.selectionStart } : null;
     const drafts = {}; root.querySelectorAll('input.t[id]').forEach(i => drafts[i.id] = i.value);
-    if (this.view === 'home') root.innerHTML = homeHTML();
+    if (this.view === 'home') { root.innerHTML = homeHTML(); if (needsGate()) setTimeout(() => { const g = document.getElementById('gbtn'); if (g && !g.children.length) App.setupGoogle(); }, 0); }
     else if (!this.pub) root.innerHTML = `<div class="wrap"><p>Connecting to room ${esc(this.code)}…</p><button class="btn alt" data-a="leave-now">Back</button></div>`;
     else { const m = this.pub.match; root.innerHTML = m && (m.names[this.uid] || this.watching) ? gameHTML() : lobbyHTML(); }
     Object.entries(drafts).forEach(([id, v]) => { const i = document.getElementById(id); if (i && i.dataset.live !== 'server') i.value = v; });
@@ -486,7 +486,20 @@ function resumeHTML() {
   const rows = (App.myRooms || []).filter(r => r.phase === 'lobby' || r.phase === 'playing').slice(0, 3); if (!rows.length) return '';
   return `<section class="resume" aria-label="Pick up where you left off"><h3>Pick up where you left off</h3>${rows.map(r => `<div class="resume-row"><div class="resume-txt"><b>${esc(r.code)}</b> <span class="note">${r.phase === 'playing' ? 'match in progress, hand ' + r.hand : 'in the lobby'} · ${esc(timeAgo(r.at))}</span><div class="note">${r.others.length ? 'With ' + r.others.map(esc).join(', ') : 'No one else yet'}</div></div><button class="btn gold small" data-a="resume-room" data-c="${esc(r.code)}" data-n="${esc(r.me)}">Resume</button></div>`).join('')}</section>`;
 }
+/* login gate: with REQUIRE_LOGIN on, the first screen is the sign-in form until the player has an account session */
+const needsGate = () => !!(App.profile && !App.profile.error && App.profile.loginRequired && !App.profile.account);
+function gateHTML() {
+  const pr = App.profile;
+  return `<div class="wrap" id="home"><div class="hero"><h1>Donkey of the Day</h1>
+  <p class="tag">Sign in to play. Everyone who signs in gets their own seat, stats and progress.</p></div>
+  <section class="pf-card pf-signin gate"><h3>${App.pwMode === 'register' ? 'Create your account' : 'Sign in'}</h3>${pwFormHTML()}${pr.loginAvailable ? '<p class="note">Or sign in with Google. We store only your Google account ID and name, never your email or photo.</p><div id="gbtn" style="min-height:44px"></div>' : ''}</section>
+  ${App.homeMsg ? `<p class="err" role="alert">${esc(App.homeMsg)}</p>` : ''}
+  <div class="row quick"><button class="btn alt small" data-a="help" aria-label="How to play">📖 Rules</button><span class="ver">v${BUILD.version}</span></div></div>`;
+}
 function homeHTML() {
+  if (!Net.online()) return '<div class="wrap" id="home"><div class="hero"><h1>Donkey of the Day</h1><p class="note">Connecting to the game server…</p></div></div>';
+  if (!App.profile) return '<div class="wrap" id="home"><div class="hero"><h1>Donkey of the Day</h1><p class="note">Loading…</p></div></div>';
+  if (needsGate()) return gateHTML();
   const last = LS.get('dotd-last'), online = Net.online();
   const netNote = online ? '' : '<p class="note">Connecting to the game server…</p>';
   return `<div class="wrap" id="home"><div class="hero"><h1>Donkey of the Day</h1>
@@ -1052,7 +1065,7 @@ document.addEventListener('click', async e => {
     case 'react-toggle': App.reactOpen = !App.reactOpen; App.render(); break;
     case 'profile': App.openProfile(); break;
     case 'logout': App.googleLogout(); break;
-    case 'pw-mode': App.pwMode = App.pwMode === 'register' ? 'login' : 'register'; App.renderSheet(); App.setupGoogle(); break;
+    case 'pw-mode': App.pwMode = App.pwMode === 'register' ? 'login' : 'register'; if (App.sheet) App.renderSheet(); else App.render(); App.setupGoogle(); break;
     case 'export-data': App.exportData(); break;
     case 'delete-data': App.deleteData(); break;
     case 'report': App.reportMsg(b.dataset.id); break;
@@ -1421,7 +1434,7 @@ const V7 = {
 /* ----- progress: XP, daily challenge, table colour and card back. The server decides and stores them (under the Google account when signed in). ----- */
 const Prog = {
   s: null,   // the server's view of my progress: { xp, level, look, challenge: { id, t, done, streak } }
-  load() { return Net.call('profile').then(r => { if (!r.error) { this.s = r; App.profile = r; this.apply(); if (App.view === 'home') App.render(); if (App.sheet === 'profile') App.renderSheet(); } return r; }); },
+  load() { return Net.call('profile').then(r => { if (r.error && !App.profile) { App.profile = { error: r.error }; if (App.view === 'home') App.render(); } if (!r.error) { this.s = r; App.profile = r; this.apply(); if (App.view === 'home') App.render(); if (App.sheet === 'profile') App.renderSheet(); } return r; }); },
   level() { return this.s ? this.s.level : 1; },
   setTheme(t, b) { Net.call('set-look', { theme: t, back: b }).then(r => { if (r.ok) { if (this.s) this.s.look = r.look; this.apply(); } else App.toast('That one is still locked. Keep playing to level up.'); if (App.sheet === 'profile') App.renderSheet(); }); },
   apply() { const look = (this.s && this.s.look) || LS.get('dotd-look') || {}, t = THEMES.find(x => x.id === look.theme) || THEMES[0], b = BACKS.find(x => x.id === look.back) || BACKS[0], r = document.documentElement.style;

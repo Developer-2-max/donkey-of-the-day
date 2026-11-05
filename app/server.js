@@ -19,7 +19,8 @@ const DATA = process.env.DATA_DIR || path.join(__dirname, 'data');
 const AUDIO_DIR = process.env.AUDIO_DIR || path.join(DATA, 'audio');          // drop MP3s here: music/<id>.mp3 and commentary/<id>.mp3
 const MAX_ROOMS = +process.env.MAX_ROOMS || 500;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';                   // Google sign-in is switched on by setting this
-const PUBLIC_ROOMS = process.env.PUBLIC_ROOMS !== '0';                         // set PUBLIC_ROOMS=0 for invite-only
+const REQUIRE_LOGIN = process.env.REQUIRE_LOGIN !== '0';                       // players must sign in before they can create or join a room (REQUIRE_LOGIN=0 lets guests play)
+const PUBLIC_ROOMS = process.env.PUBLIC_ROOMS !== '0';                        // set PUBLIC_ROOMS=0 for invite-only
 const MAX_SONGS = 30, MAX_SONG_BYTES = 20e6;
 const IDLE_CLOSE_MS = (+process.env.IDLE_CLOSE_MIN || 30) * 60e3;              // no connected players for this long: save and close the room
 const ROOM_TTL_MS = (+process.env.ROOM_TTL_HOURS || 72) * 3600e3;              // saved rooms older than this are deleted
@@ -200,7 +201,7 @@ app.use(express.static(path.join(__dirname, 'public'), Object.assign({}, fresh, 
 const AUDIO = /^(audio\/(mpeg|mp3|mp4|x-m4a|aac|wav|x-wav|ogg|webm|flac)|video\/(mp4|webm))$/;
 app.post('/api/song', express.raw({ type: () => true, limit: MAX_SONG_BYTES }), (req, res) => {
   const { room: code, uid, secret, title } = req.query; const room = rooms.get(String(code || ''));
-  if (!room || !checkIdentity(uid, secret)) return res.status(403).json({ error: 'DENIED' });
+  if (!room || !checkIdentity(uid, secret) || (REQUIRE_LOGIN && !accounts.who(uid))) return res.status(403).json({ error: 'DENIED' });
   if (room.public) return res.status(403).json({ error: 'UPLOADS_OFF' });                // no uploads in public rooms: avoids copyright takedowns
   if (!limits.take(uid, 'upload')) return res.status(429).json({ error: 'SLOW_DOWN' });
   const seated = room.host.st ? !!room.host.st.names[uid] : !!room.host.lobby.members[uid];
@@ -239,6 +240,7 @@ io.on('connection', socket => {
 
   socket.on('create', safe((d, ack) => {
     if (typeof ack !== 'function' || limited('join')) return;
+    if (REQUIRE_LOGIN && !accounts.who(uid)) return ack({ error: 'NEED_LOGIN' });
     if (rooms.size >= MAX_ROOMS) return ack({ error: 'TOO_MANY_ROOMS' });
     const isPublic = PUBLIC_ROOMS && !!(d && d.public);
     const nm = String((d && d.name) || '').replace(/\s+/g, ' ').trim().slice(0, 24) || 'Player';
@@ -246,6 +248,7 @@ io.on('connection', socket => {
   }));
   socket.on('join', safe((d, ack) => {
     if (typeof ack !== 'function' || limited('join')) return;
+    if (REQUIRE_LOGIN && !accounts.who(uid)) return ack({ error: 'NEED_LOGIN' });
     const code = String((d && d.code) || '').toUpperCase(); const r = rooms.get(code) || loadRoom(code); if (!r) return ack({ error: 'NO_ROOM' });
     const nm = String((d && d.name) || '').replace(/\s+/g, ' ').trim().slice(0, 24) || 'Player', shown = r.public ? filter.clean(nm) : nm;
     const claimed = !d.watch && claimSeat(r, uid); if (claimed) r.host.changed();
@@ -287,7 +290,7 @@ io.on('connection', socket => {
   }));
   socket.on('hall', safe((d, ack) => { if (typeof ack === 'function') ack({ rows: hall.list().slice(0, 300) }); }));
   socket.on('set-look', safe((d, ack) => { if (typeof ack !== 'function' || limited('act')) return; const key = accounts.keyFor(uid); ack({ ok: profiles.setLook(key, d && d.theme, d && d.back), look: profiles.view(key).look }); }));
-  socket.on('profile', safe((d, ack) => { if (typeof ack === 'function') ack(Object.assign(profiles.view(accounts.keyFor(uid)), { account: accounts.who(uid), loginAvailable: !!GOOGLE_CLIENT_ID, passwordLogin: true })); }));
+  socket.on('profile', safe((d, ack) => { if (typeof ack === 'function') ack(Object.assign(profiles.view(accounts.keyFor(uid)), { account: accounts.who(uid), loginAvailable: !!GOOGLE_CLIENT_ID, passwordLogin: true, loginRequired: REQUIRE_LOGIN })); }));
   socket.on('login-nonce', safe((d, ack) => { if (typeof ack !== 'function' || !GOOGLE_CLIENT_ID || limited('login')) return;
     const nonce = crypto.randomBytes(16).toString('hex'); nonces.set(uid, { nonce, at: Date.now() }); ack({ nonce }); }));
   socket.on('login', safe(async (d, ack) => {

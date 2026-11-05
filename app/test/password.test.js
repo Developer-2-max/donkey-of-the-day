@@ -27,6 +27,21 @@ test('passwords: repeated wrong guesses lock the username for a while, even with
   t += LOCK_MS + 1; assert.equal((await p.verify('asha', 'correct horse')).name, 'Asha', 'unlocks after the wait');
 });
 
+test('login gate: guests cannot create or join rooms; signing in opens the door', async () => {
+  const srv = await startServer({ REQUIRE_LOGIN: '1' });
+  try {
+    const a = player(srv.url); await a.ready; const p = await a.call('profile'); assert.equal(p.loginRequired, true);
+    assert.equal((await a.call('create', { name: 'Guest' })).error, 'NEED_LOGIN');
+    assert.equal((await a.call('join', { code: 'AAAAA', name: 'Guest' })).error, 'NEED_LOGIN');
+    assert.equal((await a.call('join', { code: 'AAAAA', name: 'Guest', watch: true })).error, 'NEED_LOGIN', 'watching needs an account too');
+    assert.equal((await a.call('register', { username: 'asha', password: 'correct horse' })).ok, true);
+    const r = await a.call('create', { name: 'Asha' }); assert.match(r.code, /^[A-Z]{5}$/);
+    const g = player(srv.url); await g.ready; assert.equal((await g.call('join', { code: r.code, name: 'Guest' })).error, 'NEED_LOGIN', 'a guest cannot walk into an existing room');
+    assert.equal((await a.call('logout')).ok, true); assert.equal((await a.call('create', { name: 'Asha' })).error, 'NEED_LOGIN', 'signing out closes the door again');
+    a.close(); g.close();
+  } finally { await srv.stop(); }
+});
+
 test('login form over the real server: each person gets their own session and progress, rooms follow the account', async () => {
   const srv = await startServer();
   try {
