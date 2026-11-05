@@ -1,7 +1,10 @@
 node_modules
-data
+data/*
+!data/
+!data/audio/
+data/audio/*
+!data/audio/titles.json
 .git
 *.log
 .playwright-mcp
 test
-
