@@ -1,4 +1,7 @@
 node_modules/
 data/
+!app/data/
+!app/data/audio/
+!app/data/audio/titles.json
 *.log
 .playwright-mcp/
