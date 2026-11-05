@@ -502,10 +502,11 @@ function homeHTML() {
   if (needsGate()) return gateHTML();
   const last = LS.get('dotd-last'), online = Net.online();
   const netNote = online ? '' : '<p class="note">Connecting to the game server…</p>';
-  return `<div class="wrap" id="home"><div class="hero"><h1>Donkey of the Day</h1>
+  const acct = App.profile && App.profile.account ? `<div class="acctbar"><span class="who">👤 Signed in as <b>${esc(App.profile.account.name)}</b></span><span class="acts"><button class="btn alt small" data-a="profile">⭐ My profile</button><button class="btn alt small" data-a="logout">Sign out</button></span></div>` : '';
+  return `<div class="wrap" id="home">${acct}<div class="hero"><h1>Donkey of the Day</h1>
   <p class="tag">Follow suit, cut when you can’t, and don’t be the last one holding cards.</p>
   <input id="nm" class="t namein" maxlength="24" autocomplete="nickname" value="${esc(App.name)}" placeholder="Your name at the table" aria-label="Your display name">
-  <div class="row quick"><button class="btn alt small" data-a="help" aria-label="How to play">📖 Rules</button>${online ? '<button class="btn alt small" data-a="profile">⭐ My profile</button>' : ''}<button class="btn alt small" data-a="fun-hall" ${Net.canWatch() ? '' : 'disabled'}>🫏 Hall of Shame</button></div>
+  <div class="row quick"><button class="btn alt small" data-a="help" aria-label="How to play">📖 Rules</button>${online && !acct ? '<button class="btn alt small" data-a="profile">⭐ My profile</button>' : ''}<button class="btn alt small" data-a="fun-hall" ${Net.canWatch() ? '' : 'disabled'}>🫏 Hall of Shame</button></div>
   ${App.homeMsg ? `<p class="err" role="alert">${esc(App.homeMsg)}</p>` : ''}
   <div class="row suitrow"><span>Suit names</span>${suitSeg()}<span class="ver">v${BUILD.version}</span></div></div>
   ${Prog.challengeHTML()}${resumeHTML()}
