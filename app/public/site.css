@@ -13,6 +13,9 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; touch-action:manipul
 body{ margin:0; background:var(--page); color:var(--ink); font:400 17px/1.55 var(--body); -webkit-tap-highlight-color:transparent; padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-area-inset-right,0px); }
 a{ color:inherit; } img{ max-width:100%; }
 button,input,select{ font:inherit; color:inherit; } button{ cursor:pointer; }
+#pwform label{ display:block; font-weight:500; margin:12px 0 6px; }
+#pwform input{ width:100%; max-width:360px; min-height:44px; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--surface); }
+.err{ color:var(--warn); font-weight:500; }
 @media (hover:none) and (pointer:coarse){ input,select,textarea{ font-size:16px !important; } }   /* iPhone Safari zooms into fields smaller than 16px */
 :focus-visible{ outline:3px solid var(--marigold); outline-offset:2px; }
 .hidden{ display:none !important; }

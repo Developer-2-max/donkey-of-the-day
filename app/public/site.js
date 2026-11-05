@@ -4,7 +4,7 @@
   var $ = function (s) { return document.querySelector(s); };
   var LS = { get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
-  var LOGIN_ERR = { LOGIN_OFF: 'Google sign-in is not switched on for this server.', BAD_NONCE: 'That sign-in expired. Try the Google button again.', EXPIRED: 'That sign-in expired. Try again.', BAD_TOKEN: 'Google sign-in could not be verified. Try again.', LIMIT: 'Slow down a little, then try again.' };
+  var LOGIN_ERR = { LOGIN_OFF: 'Google sign-in is not switched on for this server.', BAD_NONCE: 'That sign-in expired. Try the Google button again.', EXPIRED: 'That sign-in expired. Try again.', BAD_TOKEN: 'Google sign-in could not be verified. Try again.', LIMIT: 'Slow down a little, then try again.', BAD_USERNAME: 'Usernames are 3 to 20 letters, numbers or underscores.', WEAK_PASSWORD: 'Passwords must be 8 to 72 characters.', TAKEN: 'That username is taken. Pick another.', BAD_CREDENTIALS: 'Wrong username or password.', LOCKED: 'Too many wrong tries. Wait 15 minutes and try again.' };
 
   function identity() {
     var id = LS.get('dotd-web-id');
@@ -27,9 +27,20 @@
     var p = S.profile; if (!p || p.account) return show('#p-in', false);
     show('#p-in', true);
     $('#p-in').className = 'panel signin';
-    $('#p-in').innerHTML = '<h2>Keep your games with you</h2>' + (p.loginAvailable
-      ? '<p>Sign in with Google to see your match history on any device, resume a room from another phone or laptop, and manage where you are signed in. You can still play as a guest without it.</p><div id="gbtn" style="min-height:44px"></div><div id="gerr" class="note"></div>'
-      : '<p>Google sign-in is not switched on for this server yet. You can still play as a guest. Your games on this browser are kept here.</p>');
+    var reg = S.pwMode === 'register';
+    $('#p-in').innerHTML = '<h2>Keep your games with you</h2><p>Sign in to see your match history on any device, resume a room from another phone or laptop, and manage where you are signed in. Everyone who signs in gets their own session. You can still play as a guest without it.</p>' +
+      '<form id="pwform" autocomplete="on"><label for="pw-u">Username</label><input id="pw-u" name="username" autocomplete="username" maxlength="20" autocapitalize="off" autocorrect="off" spellcheck="false" required>' +
+      '<label for="pw-p">Password</label><input id="pw-p" name="password" type="password" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" maxlength="72" required>' +
+      (reg ? '<p class="note">Username: 3 to 20 letters, numbers or underscores. Password: at least 8 characters.</p>' : '') +
+      '<div class="row" style="margin-top:10px"><button class="btn gold small" type="submit">' + (reg ? 'Create account' : 'Sign in') + '</button><button class="btn alt small" type="button" id="pwmode">' + (reg ? 'I already have an account' : 'Create an account') + '</button></div></form>' +
+      (p.loginAvailable ? '<p class="note">Or sign in with Google:</p><div id="gbtn" style="min-height:44px"></div>' : '') + '<div id="gerr" class="note" role="alert"></div>';
+    $('#pwmode').onclick = function () { S.pwMode = reg ? 'login' : 'register'; viewSignIn(); };
+    $('#pwform').onsubmit = function (e) {
+      e.preventDefault(); var f = e.target, b = f.querySelector('[type=submit]'); b.disabled = true;
+      call(reg ? 'register' : 'password-login', { username: f.elements.username.value, password: f.elements.password.value }).then(function (x) {
+        if (x.ok) { S.pwMode = 'login'; toast('Signed in as ' + x.name + '.'); refresh(); } else { b.disabled = false; var g = $('#gerr'); if (g) g.innerHTML = '<span class="err">' + esc(LOGIN_ERR[x.error] || 'Sign-in failed. Try again.') + '</span>'; }
+      });
+    };
     if (p.loginAvailable) setupGoogle();
   }
   function viewMe() {
@@ -37,7 +48,7 @@
     var pct = Math.max(0, Math.min(100, Math.round(((p.xp - p.prevLevelXp) / Math.max(1, p.nextLevelXp - p.prevLevelXp)) * 100)));
     var name = p.account ? p.account.name : (p.name && p.name !== 'Player' ? p.name : 'Guest player');
     $('#p-me').innerHTML = '<div class="me"><div class="ring" style="--p:' + pct + '"><span>' + p.level + '</span></div><div class="who"><h2>' + esc(name) + '</h2><div class="meta">' +
-      (p.account ? 'Signed in with Google' : 'Playing as a guest') + ' · ' + p.xp + ' XP · ' + p.matches + ' matches · ' + p.series.lost + ' Donkey ' + (p.series.lost === 1 ? 'title' : 'titles') + '</div></div>' +
+      (p.account ? (p.account.kind === 'password' ? 'Signed in with a password' : 'Signed in with Google') : 'Playing as a guest') + ' · ' + p.xp + ' XP · ' + p.matches + ' matches · ' + p.series.lost + ' Donkey ' + (p.series.lost === 1 ? 'title' : 'titles') + '</div></div>' +
       (p.account ? '<button class="btn alt small" id="so">Sign out</button>' : '') + '</div>';
     var so = $('#so'); if (so) so.onclick = function () { call('logout').then(function () { toast('Signed out.'); refresh(); }); };
   }

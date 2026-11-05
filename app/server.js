@@ -12,6 +12,7 @@ const { entriesFor } = require('./lib/history');
 const { Buckets } = require('./lib/ratelimit');
 const { Accounts } = require('./lib/accounts');
 const { verifyIdToken } = require('./lib/google');
+const { Passwords } = require('./lib/passwords');
 
 const PORT = process.env.PORT || 3000;
 const DATA = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -41,6 +42,7 @@ function checkIdentity(uid, secret) {
 const profiles = new Profiles(path.join(DATA, 'profiles.json'), S, +process.env.GAME_TZ_OFFSET_MIN || 330);   // the daily challenge rolls over at midnight IST unless told otherwise
 const hall = new Hall(path.join(DATA, 'hall.json'));
 const accounts = new Accounts(path.join(DATA, 'accounts.json'));
+const passwords = new Passwords(path.join(DATA, 'users.json'));
 const nonces = new Map();   // uid -> { nonce, at }: a one-time value the Google token must carry, so a stolen token can't be replayed from another browser
 const filter = makeFilter();
 const limits = new Buckets();
@@ -285,7 +287,7 @@ io.on('connection', socket => {
   }));
   socket.on('hall', safe((d, ack) => { if (typeof ack === 'function') ack({ rows: hall.list().slice(0, 300) }); }));
   socket.on('set-look', safe((d, ack) => { if (typeof ack !== 'function' || limited('act')) return; const key = accounts.keyFor(uid); ack({ ok: profiles.setLook(key, d && d.theme, d && d.back), look: profiles.view(key).look }); }));
-  socket.on('profile', safe((d, ack) => { if (typeof ack === 'function') ack(Object.assign(profiles.view(accounts.keyFor(uid)), { account: accounts.who(uid), loginAvailable: !!GOOGLE_CLIENT_ID })); }));
+  socket.on('profile', safe((d, ack) => { if (typeof ack === 'function') ack(Object.assign(profiles.view(accounts.keyFor(uid)), { account: accounts.who(uid), loginAvailable: !!GOOGLE_CLIENT_ID, passwordLogin: true })); }));
   socket.on('login-nonce', safe((d, ack) => { if (typeof ack !== 'function' || !GOOGLE_CLIENT_ID || limited('login')) return;
     const nonce = crypto.randomBytes(16).toString('hex'); nonces.set(uid, { nonce, at: Date.now() }); ack({ nonce }); }));
   socket.on('login', safe(async (d, ack) => {
@@ -299,6 +301,18 @@ io.on('connection', socket => {
       ack({ ok: true, name: r.account.name });
     } catch (e) { ack({ error: e.code || 'BAD_TOKEN' }); }
   }));
+  /* basic login form: username + password. Registering also signs in. Each browser (uid) becomes a session of that account. */
+  const passwordSession = async (kind, d, ack) => {
+    if (typeof ack !== 'function') return; if (limited('login')) return ack({ error: 'LIMIT' });
+    try {
+      const g = await passwords[kind](d && d.username, d && d.password);
+      const prev = accounts.keyFor(uid), r = accounts.signIn(uid, g.sub, g.name, socket.handshake.headers['user-agent']);
+      if (prev === uid) profiles.merge(prev, r.to);   // a guest's progress joins the account; someone already signed in is just switched, never merged into another account
+      profiles.touch(r.to, g.name); ack({ ok: true, name: r.account.name });
+    } catch (e) { ack({ error: e.code || 'BAD_CREDENTIALS' }); }
+  };
+  socket.on('register', safe((d, ack) => passwordSession('register', d, ack)));
+  socket.on('password-login', safe((d, ack) => passwordSession('verify', d, ack)));
   socket.on('logout', safe((d, ack) => { accounts.signOut(uid); if (typeof ack === 'function') ack({ ok: true }); }));
   /* sessions: match history, rooms to resume, signed-in devices */
   socket.on('history', safe((d, ack) => { if (typeof ack === 'function') ack({ rows: profiles.history(accounts.keyFor(uid)), signedIn: !!accounts.who(uid) }); }));
@@ -313,7 +327,7 @@ io.on('connection', socket => {
       songs: [...rooms.values()].flatMap(r => Object.entries(r.songs).filter(([, s]) => s.by === uid).map(([id, s]) => ({ room: r.code, id, title: s.title }))) }); }));
   socket.on('delete-data', safe((d, ack) => { if (typeof ack !== 'function' || limited('join')) return;
     hall.anonymize(uid);   // the Hall of Shame is public, so the player's name leaves past entries
-    accounts.erase(uid).forEach(k => profiles.remove(k));   // the account's progress, and this browser's own
+    const sub = accounts.live(uid); accounts.erase(uid).forEach(k => profiles.remove(k)); if (sub && sub.startsWith('p:')) passwords.remove(sub);   // the account's progress, and this browser's own
     for (const r of rooms.values()) { let changed = false;
       r.chat.forEach(c => { if (c.u === uid) { c.u = 'deleted'; c.x = '[message deleted]'; changed = true; } });
       for (const [id, s] of Object.entries(r.songs)) if (s.by === uid) { delete r.songs[id]; fs.unlink(path.join(DATA, 'songs', id), () => {}); fs.unlink(path.join(DATA, 'songs', id + '.type'), () => {}); changed = true; }
@@ -325,7 +339,7 @@ io.on('connection', socket => {
 // one room's bug must never take the other rooms down
 process.on('uncaughtException', e => console.error('uncaught', e));
 process.on('unhandledRejection', e => console.error('unhandled', e));
-function shutdown() { for (const r of rooms.values()) persistNow(r); profiles.flush(); accounts.flush(); hall.flush(); try { fs.writeFileSync(idFile, JSON.stringify(identities)); } catch (e) {} process.exit(0); }
+function shutdown() { for (const r of rooms.values()) persistNow(r); profiles.flush(); accounts.flush(); passwords.flush(); hall.flush(); try { fs.writeFileSync(idFile, JSON.stringify(identities)); } catch (e) {} process.exit(0); }
 process.on('SIGTERM', shutdown); process.on('SIGINT', shutdown);
 
 if (require.main === module) server.listen(PORT, () => console.log(`Donkey of the Day server on http://localhost:${PORT}`));

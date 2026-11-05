@@ -5,3 +5,7 @@ data/
 !app/data/audio/titles.json
 *.log
 .playwright-mcp/
+
+app/data/users.json
+app/data/accounts.json
+app/data/profiles.json

@@ -30,7 +30,7 @@ class Accounts {
   }
   /* the key a browser's progress is stored under */
   keyFor(uid) { const s = this.live(uid); return s ? 'g:' + s : uid; }
-  who(uid) { const s = this.live(uid); return s ? { name: this.data.accounts[s] && this.data.accounts[s].name || 'Google player' } : null; }
+  who(uid) { const s = this.live(uid); return s ? { name: this.data.accounts[s] && this.data.accounts[s].name || 'Player', kind: s.startsWith('p:') ? 'password' : 'google' } : null; }
   signIn(uid, sub, name, ua) {
     const now = this.now(), a = this.data.accounts[sub] = Object.assign(this.data.accounts[sub] || { createdAt: now }, { name: name || 'Google player', lastLogin: now });
     this.data.sessions[uid] = sub; this.data.meta[uid] = { at: now, last: now, ua: String(ua || '').slice(0, 200) }; this.save(); return { from: uid, to: 'g:' + sub, account: a };

@@ -11,7 +11,7 @@ const REASONS = { NO_POWER: "You don’t have that magic card.", NOT_IN_MATCH: '
   NOT_HOST: 'Only the host can do that.', ROOM_FULL: 'Every seat is taken.', SEATS_NOT_FULL: 'Fill every seat first. Add friends or tap Fill with bots.', CANNOT_CUT_WHEN_LEADING: 'You lead this trick, so play any single card.',
   LOSER_NO_MUSIC: 'You have the most losses, so the music is out of your hands until you make a comeback.', UPLOADS_OFF: 'Song uploads are turned off in public rooms. Pick one of the built-in songs.',
   WATCHERS_NO_MUSIC: 'Only seated players can change the music.', EMPTY_NAME: 'Type a name first.' };
-const LOGIN_ERR = { LOGIN_OFF: 'Google sign-in is not switched on for this server.', BAD_NONCE: 'That sign-in expired. Try the Google button again.', EXPIRED: 'That sign-in expired. Try again.', BAD_TOKEN: 'Google sign-in could not be verified. Try again.', LIMIT: 'Slow down a little, then try again.' };
+const LOGIN_ERR = { LOGIN_OFF: 'Google sign-in is not switched on for this server.', BAD_NONCE: 'That sign-in expired. Try the Google button again.', EXPIRED: 'That sign-in expired. Try again.', BAD_TOKEN: 'Google sign-in could not be verified. Try again.', LIMIT: 'Slow down a little, then try again.', BAD_USERNAME: 'Usernames are 3 to 20 letters, numbers or underscores.', WEAK_PASSWORD: 'Passwords must be 8 to 72 characters.', TAKEN: 'That username is taken. Pick another.', BAD_CREDENTIALS: 'Wrong username or password.', LOCKED: 'Too many wrong tries. Wait 15 minutes and try again.' };
 const ERR = { NO_ROOM: 'No room uses that code. Check it with your host.', OFFLINE: 'Not connected to the game server. Check your internet and try again.', TIMEOUT: 'The server took too long to answer. Try again.', TOO_MANY_ROOMS: 'The server is full right now. Try again in a while.', SERVER: 'Something went wrong on the server. Try again.' };
 
 /* ---------- network: one Socket.IO connection to our own game server ---------- */
@@ -296,6 +296,13 @@ const App = {
     if (r.ok) { this.toast('Signed in as ' + r.name + '.'); this.profile = null; if (this.sheet === 'profile') this.renderSheet(); await this.loadProfile(); }
     else { this.toast(LOGIN_ERR[r.error] || 'Sign-in failed. Try again.'); this.setupGoogle(); }
   },
+  async passwordSubmit(form) {
+    const u = form.elements.username.value, p = form.elements.password.value, reg = this.pwMode === 'register', err = document.getElementById('pw-err');
+    const btn = form.querySelector('[type=submit]'); if (btn) btn.disabled = true;
+    const r = await Net.call(reg ? 'register' : 'password-login', { username: u, password: p });
+    if (r.ok) { this.toast('Signed in as ' + r.name + '.'); this.pwMode = 'login'; this.profile = null; if (this.sheet === 'profile') this.renderSheet(); await this.loadProfile(); }
+    else { if (btn) btn.disabled = false; const m = LOGIN_ERR[r.error] || 'Sign-in failed. Try again.'; if (err) err.textContent = m; else this.toast(m); }
+  },
   async googleLogout() { await Net.call('logout'); this.toast('Signed out.'); this.profile = null; if (this.sheet === 'profile') this.renderSheet(); await this.loadProfile(); },
   async exportData() {
     const d = await Net.call('export-data'); if (d.error) return this.toast(ERR[d.error] || 'Could not export.');
@@ -431,10 +438,19 @@ function musicHTML() {
   ${Music.state === 'on' && pk.src !== 'own' ? `<section class="blk"><label class="f" for="vol">Volume on this device</label><input id="vol" type="range" min="0" max="1" step="0.05" value="${Music.vol}" style="width:100%">
   <div class="row" style="margin-top:8px"><button class="btn alt small" data-a="mute" aria-pressed="${Music.muted}">${Music.muted ? 'Unmute' : 'Mute'}</button><span class="note">Muting only affects you.</span></div></section>` : ''}`;
 }
+const acctVia = pr => pr.account && pr.account.kind === 'password' ? 'with a password' : 'with Google';
 function signInHTML(pr) {
-  if (pr.account) return `<p>Signed in with Google as <b>${esc(pr.account.name)}</b>. Your XP, stats and Hall of Shame follow you to any device.</p><div class="row"><button class="btn alt small" data-a="logout">Sign out</button></div>`;
-  if (!pr.loginAvailable) return '<p class="note">Sign-in is not switched on for this server yet.</p>';
-  return '<p class="note">Sign in with Google to keep your XP, stats and Hall of Shame on every device. We store only your Google account ID and name, never your email or photo.</p><div id="gbtn" style="min-height:44px"></div>';
+  return `<p>Signed in ${acctVia(pr)} as <b>${esc(pr.account.name)}</b>. Your XP, stats and Hall of Shame follow you to any device.</p><div class="row"><button class="btn alt small" data-a="logout">Sign out</button></div>`;
+}
+/* basic login form: each person who signs in gets their own session (and their own progress), even on a shared computer */
+function pwFormHTML() {
+  const reg = App.pwMode === 'register';
+  return `<form class="pwform" data-form="pw" autocomplete="on">
+    <label class="f" for="pw-u">Username</label><input class="t" id="pw-u" name="username" autocomplete="username" maxlength="20" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    <label class="f" for="pw-p">Password</label><input class="t" id="pw-p" name="password" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" maxlength="72" required>
+    ${reg ? '<p class="note">Username: 3 to 20 letters, numbers or underscores. Password: at least 8 characters.</p>' : ''}
+    <div class="row" style="margin-top:10px"><button class="btn gold small" type="submit">${reg ? 'Create account' : 'Sign in'}</button><button class="btn alt small" type="button" data-a="pw-mode">${reg ? 'I already have an account' : 'Create an account'}</button></div>
+    <p class="note err" id="pw-err" role="alert"></p></form>`;
 }
 function profileHTML() {
   const pr = App.profile;
@@ -446,17 +462,17 @@ function profileHTML() {
   return `<div class="pf">
     <div class="pf-hero"><div class="pf-ring" style="--p:${into}" role="img" aria-label="Level ${pr.level}, ${into}% of the way to level ${pr.level + 1}"><span>${esc((name[0] || '?').toUpperCase())}</span></div>
       <div class="pf-id"><h2>${esc(name)}</h2><div class="pf-sub"><span class="lvlbadge">LEVEL ${pr.level}</span><span>${pr.xp} XP</span></div>
-        <div class="pf-acct">${pr.account ? '✅ Signed in with Google' : '👤 Playing as a guest on this browser'}</div></div></div>
+        <div class="pf-acct">${pr.account ? '✅ Signed in ' + acctVia(pr) : '👤 Playing as a guest on this browser'}</div></div></div>
     <div class="pf-xp"><div class="xpbar" role="progressbar" aria-valuenow="${into}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress to level ${pr.level + 1}"><i style="width:${into}%"></i></div>
       <span class="note">${pr.nextLevelXp - pr.xp} XP to level ${pr.level + 1}. Matches, safe hands and challenges earn XP, and levels unlock table colours and card backs.</span></div>
     <div class="pf-tiles">${tiles.map(([i, n, l]) => `<div class="pf-tile"><span aria-hidden="true">${i}</span><b>${n}</b><small>${l}</small></div>`).join('')}</div>
     ${Prog.challengeHTML()}
-    ${!pr.account && pr.loginAvailable ? `<section class="pf-card pf-signin"><h3>Keep your progress on every device</h3><p class="note">Sign in with Google. We store only your Google account ID and name, never your email or photo.</p><div id="gbtn" style="min-height:44px"></div></section>` : ''}
+    ${!pr.account ? `<section class="pf-card pf-signin"><h3>Sign in to keep your progress</h3>${pwFormHTML()}${pr.loginAvailable ? `<p class="note">Or sign in with Google. We store only your Google account ID and name, never your email or photo.</p><div id="gbtn" style="min-height:44px"></div>` : ''}</section>` : ''}
     <section class="pf-card"><h3>Table colour and card back</h3>${Prog.lookHTML()}</section>
     <section class="pf-card"><h3>My Hall of Shame entries</h3>${hall}<button class="btn alt small" data-a="fun-hall">🫏 Open the Hall of Shame</button></section>
     <details class="pf-card pf-more" ${App.openSets.has('pf-more') ? 'open' : ''} data-set="pf-more"><summary>Account and data</summary>
-      ${pr.account ? signInHTML(pr) : (!pr.loginAvailable ? '<p class="note">Sign-in is not switched on for this server yet.</p>' : '')}
-      <p class="note">${pr.account ? 'Your progress is saved to your Google account on this server.' : 'Your progress is saved on this server against this browser. Clearing browser data or switching device starts a fresh profile unless you sign in.'} The Hall of Shame is public and shows display names. You can download or delete everything we hold about you.</p>
+      ${pr.account ? signInHTML(pr) : ''}
+      <p class="note">${pr.account ? 'Your progress is saved to your account on this server.' : 'Your progress is saved on this server against this browser. Clearing browser data or switching device starts a fresh profile unless you sign in.'} The Hall of Shame is public and shows display names. You can download or delete everything we hold about you.</p>
       <div class="row"><button class="btn alt small" data-a="export-data">⬇️ Download my data</button><button class="btn alt small" data-a="delete-data">🗑️ Delete my data</button></div></details>
   </div>`;
 }
@@ -1036,6 +1052,7 @@ document.addEventListener('click', async e => {
     case 'react-toggle': App.reactOpen = !App.reactOpen; App.render(); break;
     case 'profile': App.openProfile(); break;
     case 'logout': App.googleLogout(); break;
+    case 'pw-mode': App.pwMode = App.pwMode === 'register' ? 'login' : 'register'; App.renderSheet(); App.setupGoogle(); break;
     case 'export-data': App.exportData(); break;
     case 'delete-data': App.deleteData(); break;
     case 'report': App.reportMsg(b.dataset.id); break;
@@ -1067,6 +1084,7 @@ document.addEventListener('click', async e => {
   }
 });
 document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.input === 'v7-cut') { App.cutAt = +e.target.value; const n = $('#cutn'); if (n) n.textContent = App.cutAt; const viz = document.querySelector('.cutviz'); if (viz) viz.outerHTML = V7.cutVizHTML(App.cutAt); return; } if (e.target.id === 'vol') { Music.vol = +e.target.value; Music.applyVol(); } if (e.target.id === 'nm') App.name = e.target.value; });
+document.addEventListener('submit', e => { if (e.target.dataset && e.target.dataset.form === 'pw') { e.preventDefault(); App.passwordSubmit(e.target); } });
 document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.set) { if (d.open) App.openSets.add(d.dataset.set); else App.openSets.delete(d.dataset.set); } }, true);
 document.addEventListener('change', e => {
   const t = e.target, k = t.dataset && t.dataset.change; if (!k) return;
